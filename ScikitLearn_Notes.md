@@ -161,8 +161,6 @@ rmse = np.sqrt(mse)
 print(f"RMSE: {rmse}")
 ```
 
-
-
 # 📘 Cross Validation & Regularization
 
 ## 🔁 Cross Validation
@@ -174,10 +172,12 @@ print(f"RMSE: {rmse}")
   - Aggregating performance metrics across folds
 
 ### 🔹 Common Terms
+
 - **k-fold CV**: k separate folds (e.g., 5-fold CV → 5 rounds)
 - More folds = more accurate estimate, but more computation
 
 ### 🔧 Code Example
+
 ```python
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.linear_model import LinearRegression
@@ -198,6 +198,7 @@ print(np.quantile(cv_results, [0.025, 0.975]))
 ## 🔐 Regularized Regression
 
 ### 📉 Why Regularize?
+
 - Linear regression minimizes a loss function to fit `y = ax + b`
 - Large coefficients can lead to **overfitting**
 - **Regularization** adds a penalty term to discourage large coefficients
@@ -205,13 +206,15 @@ print(np.quantile(cv_results, [0.025, 0.975]))
 ---
 
 ## 🧮 Ridge Regression
+
 - **Penalty**: `alpha * sum(a_i^2)` (L2 norm)
-- Penalizes large *positive or negative* coefficients
+- Penalizes large _positive or negative_ coefficients
 - `alpha` is a **hyperparameter** that controls model complexity
   - `alpha = 0`: behaves like OLS (can overfit)
   - High `alpha`: can underfit
 
 ### 🔧 Code Example
+
 ```python
 from sklearn.linear_model import Ridge
 
@@ -228,11 +231,13 @@ print(scores)
 ---
 
 ## ✂️ Lasso Regression (Feature Selection)
+
 - **Penalty**: `alpha * sum(|a_i|)` (L1 norm)
 - Shrinks **less important coefficients** to **zero**
 - Helps with **feature selection**
 
 ### 🔧 Lasso Example
+
 ```python
 from sklearn.linear_model import Lasso
 
@@ -247,6 +252,7 @@ print(scores)
 ```
 
 ### 🧪 Lasso for Feature Selection
+
 ```python
 from sklearn.linear_model import Lasso
 import matplotlib.pyplot as plt
@@ -269,22 +275,26 @@ plt.show()
 ## 🧠 How Good is Your Model?
 
 ### ⚖️ Classification Metrics
+
 - Accuracy = Correct predictions / Total predictions
 - Not always reliable — especially with **class imbalance**
 
 #### ⚠️ Example:
+
 - Fraud detection: 99% legit, 1% fraud
 - Classifier that always predicts "legit" is 99% accurate... but useless
 
 ---
 
 ## 🔍 Confusion Matrix
-|                | **Predicted: No** | **Predicted: Yes** |
-|----------------|-------------------|--------------------|
-| **Actual: No** | True Negative     | False Positive     |
-| **Actual: Yes**| False Negative    | True Positive      |
+
+|                 | **Predicted: No** | **Predicted: Yes** |
+| --------------- | ----------------- | ------------------ |
+| **Actual: No**  | True Negative     | False Positive     |
+| **Actual: Yes** | False Negative    | True Positive      |
 
 ### 🧮 Common Metrics:
+
 - **Accuracy** = (TP + TN) / Total
 - **Precision** = TP / (TP + FP) → How many predicted positives are actually correct?
 - **Recall** = TP / (TP + FN) → How many actual positives were identified?
@@ -293,6 +303,7 @@ plt.show()
 ---
 
 ## 🔧 Confusion Matrix in scikit-learn
+
 ```python
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.neighbors import KNeighborsClassifier
@@ -306,4 +317,98 @@ y_pred = knn.predict(X_test)
 
 print(confusion_matrix(y_test, y_pred))
 print(classification_report(y_test, y_pred))
+```
+
+### Logistic Regression and the ROC Curve
+
+- Logistic regression is used for classification problems
+- Logistic regression outputs probabilities
+- If the probability, `p` > 0.5:
+  - Data is labeled 1
+- If the probability `p` < 0.5:
+  - Data is labeled 0
+
+```python
+from sklearn.linear_model import LogisticRegression
+logreg = LogisticRegression()
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+logreg.fit(X_train, y_train)
+y_pred = logreg.predict(X_test)
+
+y_pred_probs = logreg.predict_proba(X_test)[:, 1]
+print(y_pred_probs[0])
+```
+
+## Probability thresholds
+
+- By default, logistic regression threshold = 0.5
+- Not specified to logistic regression
+  - KNN classifiers also have thresholds
+- What happens if we vary the threshold?
+
+# ROC Curve
+
+# Plotting ROC curve
+
+```python
+from sklearn.metrics import roc_curve
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_probs)
+plt.plot([0, 1], [0, 1], 'k--')
+plt.plot(fpr, tpr)
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Logistic Regression ROC Curve')
+plt.show()
+```
+
+# ROC AUC
+
+```python
+from sklearn.metrics import roc_auc_score
+print(roc_auc_score(y_test, y_pred_probs))
+```
+
+# Hyperparameter tuning
+
+- Ridge/lasso regression: Choosing `alpha`
+- KNN: Choosing `n_neighbors`
+- Hyperparameters: Parameters we specify before fitting the model
+  - Like `alpha` and `n_neighbors`
+
+# Choosing the correct hyperparameters
+
+- Try lots of different hyperparameter values
+- Fit all of them seperately
+- See how well they perform
+- Choose the best performing values
+
+- This is called hyperparameter tuning
+- It is essential to use cross-validation to avoid overfitting to the test set
+- We can still split the data and perform cross-validation on the training set
+- We withhold the test set for final evaluation
+
+## Grid search cross-validation
+
+```python
+from sklearn.model_selection import GridSearchCV
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+param_grid = {"alpha": np.arrange(0.0001, 1, 10),
+              "solver": ["sag", "lsqr"]}
+ridge = Ridge()
+ridge_cv = GridSearchCV(ridge, param_grid, cv=kf)
+ridge_cv.fit(X_train, y_train)
+print(ridge_cv.best_params_, ridge_cv.best_score_)
+```
+
+## Limitations and an alternative approach
+
+- scales badly
+
+### RandomizedSearchCV
+
+```python
+from sklearn.model_selection import Randomized
+
+
+ d
 ```
