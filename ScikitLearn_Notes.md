@@ -406,9 +406,9 @@ print(ridge_cv.best_params_, ridge_cv.best_score_)
 
 ### RandomizedSearchCV
 
-```python
+```python 
 from sklearn.model_selection import Randomized
 
 
- d
+ dd.....
 ```
