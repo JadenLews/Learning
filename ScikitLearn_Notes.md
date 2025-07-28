@@ -236,7 +236,7 @@ print(scores)
 - Shrinks **less important coefficients** to **zero**
 - Helps with **feature selection**
 
-### 🔧 Lasso Example
+### 🔧 Lasso Example 
 
 ```python
 from sklearn.linear_model import Lasso
@@ -247,7 +247,6 @@ for alpha in [0.01, 1.0, 10.0, 20.0, 50.0]:
     lasso.fit(X_train, y_train)
     lasso_pred = lasso.predict(X_test)
     scores.append(lasso.score(X_test, y_test))
-
 print(scores)
 ```
 
