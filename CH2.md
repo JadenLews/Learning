@@ -86,3 +86,32 @@
 * Roud trip time (RTT)
 * First line of HTTP request is request line
 * Subsequent lines are header lines
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Class 09/08
+* transport Layer: Process to Process communication
+* Network Layer: Allow host to host communication, Source to destination communication
+* Link Layer: Hop to hop comunication. Enables communication to next device 
+* Switch: Only 2 layers. Link Layer device
+* Router: Network layer device, 3 layers
+* PDU: Protocol Data Unit
+* Network Layer: Datagram
+* Physical Layer: Bit
+* **** Names at each Layer
+* 
