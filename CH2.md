@@ -114,4 +114,106 @@
 * Network Layer: Datagram
 * Physical Layer: Bit
 * **** Names at each Layer
+
+
+
+
+
+
+# Class 09/10
+## Processes Communicating
+* Process: Program running within a host
+* Within same host, two processes communicate using inter-process communication
+* Processes in different hosts communicate by exchanging messages
+* Client process: Process that initiates communication
+* Sercer Process process that waits to be contacted
+# Socket
+* Process sends/receives messages to/from its socket
+  * Socket is analgous to door
+    * sned process shoves message out door
+    * sending process relies on transport infasructure on other side of door to deliver message to receiving process
+    * Two sockets involved: one on each side
+  * To receive messages, processes must have identifier
+  * Host device has unique 32-bit IP 
+  * Identifier includes both IP address and port numbers associated with process on host.
+  
+## Application Layer protocol defines:
+* Types of messages exchanged:
+  * Request, response...
+* MEssage syntax:
+  * What fields in message and how fieldds are delineated
+* Message semantics:
+  * meaning of information
+* Rules for when and how processes send and respond to messages
+* Open Protocols:
+  * Defined in RFCs, everyone has access to protocol definition
+  * allows to interoperability
+  * HTTP, SMTP
+* Propriertary protocols:
+  * Skype, Zoom
+
+## What transport service does app need?
+* Data integrity:
+  * Some require 100% reliable data transfer
+  * Some can tolerate some loss
+* Timing:
+  * Some require low delay to be effective
+* Throughput
+  * Some require a min throughput to be effective
+  * other can make use of whatever ("elastic")
+* Security:
+  * Encryption
+  * Data integrity
+* RDT (Reliable Data Transfer)
+
+## Internet Transport protocol Services
+* TCP service:
+  * reliable transport between sending and receiving process
+  * flow control: sender won’t overwhelm receiver 
+  * congestion control: throttle sender when network overloaded
+  * connection-oriented: setup required between client and server processes
+  * does not provide: timing, minimum throughput guarantee, security
+* UDP service:
+  * unreliable data transfer between sending and receiving process
+  * does not provide: reliability
+  * flow control, congestion control, timing, throughput guarantee, security, or connection setup.
+
+## Securing TCP
+* Vanilla TCP and UDP sockets:
+  * No encryption
+  * cleartext passwords sent into socket
+* Transport Layer Security (TLS):
+  * Provides encrypted TCP connections
+  * Data Integrity
+  * End point authentification
+* TLS implemented in application layer
+  * apps use TLS libraries, that use TCP in turn
+  *  cleartext sent into “socket” traverse Internet encrypted
+
+
+# Web and HTTP
+* web page consists of objects, each of which can be stored on different Web servers 
+* object can be HTML file, JPEG image, Java applet, audio file
+* web page consists of base HTML-file which includes several referenced objects, each addressable by a URL, e.g
+
+* HTTP uses TCP:
+  * client initiates TCP connection (creates socket) to server, port 80
+  * Server accepts TCP connection from client
+  * HTTP messages (application Layer protocol messages) exchanged between browser and Web server
+  * TCP connection closed
+* HTTP is "stateless":
+  * Server maintains no information about past client requests
+******* HTTP is an applicatoin layer protocol and uses TCP on port 80
+
+
+## HTTP connections: two types
+* Non-persistent HTTP:
+  * TCP connection opened
+  * At most one object sent over TCP
+  * TCP closed
+  * Downloading multiple objects takes multiple connections
+* Persistent HTTP:
+  * TCP connection opened
+  * Multiple objects can be sent over single TCP connection between client and server
+  * TCP connecton closed
 * 
