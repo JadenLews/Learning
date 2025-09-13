@@ -216,4 +216,89 @@
   * TCP connection opened
   * Multiple objects can be sent over single TCP connection between client and server
   * TCP connecton closed
-* 
+
+
+
+## Persistent HTTP (HTTP 1.1)
+Does http allow persistent connections
+* Non-persistent HTTP issues:
+  * Requires 2 RTTs per object
+  * OS overhead for each TCP connection
+  * Browsers often open multiple parallel TCP connections to fetch referenced objects in parallel
+* Persistent HTTP:
+  * Server leaves connection open after sending response
+  * Subsequent HTTP mesages between same client/server sent over open connection
+  * client sends request as soon as it encounters a referenced object
+  * As little as one RTT for all the referenced objects (cutting response time in half)
+
+
+## HTTP request message
+* Two types of HTTP messages:
+  * Request
+  * response
+* HTTP request message
+  * ASCII (Human-readable format)
+
+## Other HTTP request messages
+* Post method:
+  * Web page often includes form input
+  * User input sent from client to server in entity body of HTTP POST request message
+* Get Method: (for sending data to server)
+  * Include user data in URL field of HTTP 
+  * Get request message (following a '?')
+* Head Method:
+  * Requests headers (only) that qould be returned if specified URL were requested with an HTTP GET method
+* PUT method: 
+  * Uploads new file (object) to server 
+  * Completely replaces file that exists at specified URL with content in entity body of POST HTTP request message
+
+## Http response status codes
+* Status codes appears in 1st lines in server-to-client response
+* Example codes:
+  * 200 OK
+    * Request succeeded, requested object later in this messgage
+  * 301 Moved Permanently
+    * Requested object moved, new location specified later in this message (in Location: field)
+  * 400 Bad request:
+    * Request msg not understoood by server
+  * 404 Not found:
+    * Requested document not found on server
+
+
+
+## Web caches
+* Goal: satisfy cleint requests without involving origin server
+  * User congifures browser to point to a (local) Web cache
+  * Browser sends zll HTTP requests to cahce
+    * If object in cache: cache returns object to client
+    * else: cache requests object from origin server, caches received object, then returns object to client
+## Web caches (aka proxy servers)
+* Web cache acts as both server and client
+  * server for original requesting cleint
+  * client to origin server
+* Server tells cache about object's allowable caching in response header
+
+* Why web caching?
+  * reduce response time for client request
+    * cache is closer to client
+  * reduce traffic on an institution's access link
+  * Internet is dense with caches
+    * enables "poor" content providers to more effectively deliver content
+
+
+
+## Browser caching: Conditional GET
+* Goal: don’t send object if browser has up-to-date cached version:
+  * no object transmission delay (or use of network resources)
+  *  client: specify date of browser- cached copy in HTTP request If-modified-since: <date>
+  *  server: response contains no object if browser-cached copy is up-to-date: HTTP/1.0 304 Not Modified
+  
+
+
+
+## HTTP/2
+* Key goal: decreased delay in multi-object HTTP requests
+* HTTP1.1: introduced multiple, pipelined GETs over single TCP connection
+  * server responds in-order (FCFS: first-come-first-served scheduling) to GET requests
+  * with FCFS, small object may have to wait for transmission (head-of- line (HOL) blocking) behind large object(s)
+  * loss recovery (retransmitting lost TCP segments) stalls object transmission
