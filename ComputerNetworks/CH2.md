@@ -302,3 +302,54 @@ Does http allow persistent connections
   * server responds in-order (FCFS: first-come-first-served scheduling) to GET requests
   * with FCFS, small object may have to wait for transmission (head-of- line (HOL) blocking) behind large object(s)
   * loss recovery (retransmitting lost TCP segments) stalls object transmission
+
+
+
+
+
+## Maintaining user/server state: cookies
+* Web sites and client browser uses cookies to maintain some state betwen transactions
+* four components:
+  * cookie header line of HTTP response
+  * cookie header line of HTTP response message
+  * cookie file kept on users host, manage by users browser
+  * back-end database as Website
+* What are cookies used for:
+  * Authorization
+  * shopping cart
+  * recommendations
+  * user session state(Web email)
+* Challenge: How to keep state?
+  * At protocol endpoints:
+    * Maintain state at sender receiver over multiple transactions
+  * In messages:
+    * cookies in HTTP messages carry state
+
+## Cookies: tracking a users browsing behavior
+* Cookies can be used to
+  * track user behavior on a given website (first party cookies)
+  *  track user behavior across multiple websites (third party cookies)
+  *  racking may be invisible to user:
+*  
+
+
+## Web caches
+* Goal: satisfy client requests without involving origin server
+* user configures browser to point to a (local) Web cache
+* browser sends all HTTP requests to cache
+  *  if object in cache: cache returns object to client
+  *  else cache requests object from origin server, caches received object, then returns object to client
+## Web caches (aka proxy servers)
+* Web cache acts as both client and server
+* server tells cache about object’s allowable caching in response header:
+* Why Web caching?
+  * reduce response time for client request
+    * cache is closer to client
+  * reduce traffic on an institution’s access link
+
+## HTTP/2
+* Key goal: decreased delay in multi-object HTTP requests
+* HTTP1.1: introduced multiple, pipelined GETs over single TCP connection
+*  server responds in-order (FCFS: first-come-first-served scheduling) to GET requests
+*  with FCFS, small object may have to wait for transmission (head-of- line (HOL) blocking) behind large object(s)
+*  loss recovery (retransmitting lost TCP segments) stalls object transmission
