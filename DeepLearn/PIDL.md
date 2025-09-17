@@ -11,3 +11,7 @@
 * there exists a vast amt of prior knowledge in the principled physical laws that govern the time-dependent dynamics of a system
 * Prior information can act as a regularization agent that constrains the space of admissible solutions to a manageable size
 * Can direcrly tackle nonlinear problems wihtout the need for committing to any prior assumptions, linearization, or local time-stepping
+
+
+
+## 2.
