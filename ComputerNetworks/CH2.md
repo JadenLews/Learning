@@ -353,3 +353,112 @@ Does http allow persistent connections
 *  server responds in-order (FCFS: first-come-first-served scheduling) to GET requests
 *  with FCFS, small object may have to wait for transmission (head-of- line (HOL) blocking) behind large object(s)
 *  loss recovery (retransmitting lost TCP segments) stalls object transmission
+*  
+
+
+
+## E-mail: mail servers
+
+* Mail servers
+  * Mailbox contains incoming messages for user
+  * Message queue of outgoing mail messages
+  * SMTP protocol between mail servers to send email messages
+    * client sending mail server
+    * "server" receiving mail server
+
+QUIZ:
+Test on transport mode... protocol, which layer is it on... , how does it send data, what is port number
+for SMTP you just need to do a handshake T/F
+HTTP 1.0 non persistent, 
+PORT NUMBERS!!!
+
+* Email: Three major components
+  * User agent
+  * Mail server
+  * Simple mail transfer protocol: SMTP
+
+
+## SMTP RFC (5321):
+* Uses TCP for relaibly transfer email message from client to server, port 25
+* Direct Transfer: Sending server (acting like cleint) to receiving sender
+* Three phases of transfer:
+  * SMTP handshaking (greeting)
+  * SMTP transfer of messages
+  * SMTP closure
+* Command/response interaction (like HTTP)
+  * commands: ASCII text
+  * response: status code and phrase
+
+
+## SMTP: observations
+Comparison with HTTP:
+* HTTP: client pull
+* SMTP: client push
+* Both have ASCII command/response interaction, status codes
+* HTTP: each object encapsulated in its own response message
+* SMTP: multiple objects sent in multipart message
+* SMTP uses persistent connections
+* SMTP reauires message (header & body) to be in 7-bit ASCII
+* SmTP server uses CRLF.CRLF to determine end of message
+
+
+
+## retreiving email: mail access protocols
+* SMTP: delivery/srotrage of email messages to receivers server
+* mail access protocol: retrieval from server
+  * IMAP: Internet Mail Access Protocol: messages stored on server , IMAP provides retreival, deletion, foder s of stored messages on server
+* HTTP: gmail, hotmail, Yahoo!Mail, etc, provides web-based interface on top of STMP (to send), IMAP (or POP) to retreive e-mail messages
+
+
+
+
+
+
+## DNS: Domain Name System
+* people many identifiers:
+  * SSN, name, passort #
+* Internet hosts, routers:
+  * IP address (32 bit) - used for addresssing datagrams
+  * "name", e.g., cs.umass.edu used by humans
+* Q: how to map between IP address and name, and vice versa
+
+
+* Domain name System (DNS):
+  * Distrubuted database implemented in heirarchy of many name servers
+  * application layer protocol: hosts DNA servers communicate to resolve names (address/name translation)
+    * Note: coer internet function, implemented as application layer protcol
+    * complexity at networks "edge"
+
+
+
+
+## DNS: services, structure
+* DNS Service:
+  * Hostname to IP address translation
+  * host aliasing
+    * canonical, alias names
+  * Mail server aliasing
+  * load distribution
+    * replicated Web servers: Many IP addresses correspond to one name
+* Q: why not centralize DNS?
+  * Single point of failure
+  * traffic volume
+  * distant centralized database
+  * maintenance
+* A: doesn't scale@
+  * Comcast DNS servers alone: 600B DNS queries/day
+  * Akamai DNS server alone: 2.2T DNS queries/day'
+
+
+## Thinking about the DNS
+Humongous distributed database:
+* ~ billion records, each simple
+
+Handles many trillions of queries/day:
+* Many more reads than writes
+* performance matters: almost every internet transaction interacts with DNS - msecs count!
+  
+organizationally, physically decentralized:
+* millions of defferent organizations responsible for their records
+
+"bulletproof": reliability, security
