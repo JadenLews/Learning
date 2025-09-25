@@ -462,3 +462,17 @@ organizationally, physically decentralized:
 * millions of defferent organizations responsible for their records
 
 "bulletproof": reliability, security
+
+
+
+
+## DNS: a distributed, heirarchical database
+* Client wants Ip address for www..... 1st approximation:
+  * cleint queries root server to find .com DNS servef
+  * client queries .com DNS server to get amazon.com DNS server
+  * client queries amazon.com DNS server to get IP address for www.amazon.com
+
+
+DNS sec port number 
+
+127.0.0.1 loop back address
