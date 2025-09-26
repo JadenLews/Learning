@@ -476,3 +476,9 @@ organizationally, physically decentralized:
 DNS sec port number 
 
 127.0.0.1 loop back address
+
+
+
+
+
+bittorrent unstructured
