@@ -43,3 +43,31 @@ I need to give code, understand the variables within the simulation and see what
 Find an example that solves the inverse problem
 Inverse version of beam
 take displacement, try to return pressure
+
+
+
+
+
+
+Nov 19 3 -4 
+BE FREE MAN
+
+Data science related topic next wednesday and next sem something like that
+
+conductivity: empirical law
+circshift: the average of the cells around it
+
+understand the upside down triangle
+
+
+V(x) = k(v?)*(dP(x))/ dx
+k(upside down triangle)P = v
+P2 - p1 = kv
+deltaP/deltax = kv
+dp/dt + UpsideTri * V = 0
+k(x)= k1 + k2 sin(2xnx/L) 
+conductivity matrix(x,y)
+blundry conditions on 2d is on inlet outlet, rest is decided by conductivity, 
+
+given changes in system how would pressure evolve with time
+k = 1 - alpha?t
