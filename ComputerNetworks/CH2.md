@@ -482,3 +482,20 @@ DNS sec port number
 
 
 bittorrent unstructured
+
+
+
+http quic version 3 uses udp or something
+smtp 25, 
+top level domain
+give me the functio of each layer, and protocol of each layer
+transport layer: process to process communication Logical communication******
+transport layer segmentized it and gives it to network layer
+two major transport layer protocls tcp and udp
+logical communication vs physical communicaton
+network layer: communiation between hosts
+IP for host, port for process : how demultiplexer works
+
+cannot have more than 1 process on UDP
+
+java tcp
