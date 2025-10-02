@@ -1,5 +1,3 @@
-// Java program to illustrate Client side
-// Implementation using DatagramSocket
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -12,19 +10,13 @@ public class ClientUDP
     {
         Scanner sc = new Scanner(System.in);
         DatagramSocket ds = new DatagramSocket();
-
         InetAddress ip = InetAddress.getLocalHost();
         byte buf[] = null;
-
         while (true)
         {
             String inp = sc.nextLine();
-
             buf = inp.getBytes();
-
-            DatagramPacket DpSend =
-                  new DatagramPacket(buf, buf.length, ip, 6666);
-
+            DatagramPacket DpSend = new DatagramPacket(buf, buf.length, ip, 6666);
             ds.send(DpSend);
         }
     }
