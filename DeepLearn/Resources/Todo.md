@@ -71,3 +71,11 @@ blundry conditions on 2d is on inlet outlet, rest is decided by conductivity,
 
 given changes in system how would pressure evolve with time
 k = 1 - alpha?t
+
+
+
+
+
+
+
+Work on the ml code try to understand it, check in with kudulis code too 
