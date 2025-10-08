@@ -499,3 +499,9 @@ IP for host, port for process : how demultiplexer works
 cannot have more than 1 process on UDP
 
 java tcp
+
+
+
+
+
+be able to draw UDP segment structure
