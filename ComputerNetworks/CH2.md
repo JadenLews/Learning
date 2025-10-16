@@ -505,3 +505,7 @@ java tcp
 
 
 be able to draw UDP segment structure
+
+
+
+3 duplicate acks mean retransmit

@@ -79,3 +79,9 @@ k = 1 - alpha?t
 
 
 Work on the ml code try to understand it, check in with kudulis code too 
+
+
+
+add some noise
+
+literatue search for future ideas
