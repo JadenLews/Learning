@@ -85,3 +85,15 @@ Work on the ml code try to understand it, check in with kudulis code too
 add some noise
 
 literatue search for future ideas
+
+
+
+make the points not clump, spead similarly
+
+
+different distributions for disk
+
+keep 400 samples, reduce the steps, maybe to like 100
+
+mess with differnet binaries, ...
+cross correlation to see what things give better results, sparsed samples... 
