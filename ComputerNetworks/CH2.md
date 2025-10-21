@@ -509,3 +509,35 @@ be able to draw UDP segment structure
 
 
 3 duplicate acks mean retransmit
+
+
+
+
+
+
+
+What he wants us to focus on.
+Longest prefix match
+router uses destination address to route
+ingress egress port
+switching fabrics, switching rates, 3 types memory, bus, interconnection network
+
+Memory: fastest is N/2 because cpu has to do 2 steps
+
+Bus: dump into memory, right port will take from memory by using a tag. All ports have access but port with adressed to will use other will discard. Drawback one at a time, no using the cpu tho
+
+Interconnection network (crossbar): nxn busses, HOL blocking
+
+Output port queuing
+Written assignment 1 interactive seciton too
+queue delay, transmission delay
+congestgion delay ratio
+list of common protocols and their port number
+WHere they are what layer
+
+FTP data
+telnet, smtp, dns, http, pop3, pop1, imap, snmp, - trap, bgmp, https, smtp over tls/ssl ssm, 
+
+end to end delay and segmentation
+
+fuction of each layer, protocols at each layer, definition, look for 2 protocols at each layer (network layer IP), data layer, application transport layer ip layer
