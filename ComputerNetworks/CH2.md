@@ -541,3 +541,43 @@ telnet, smtp, dns, http, pop3, pop1, imap, snmp, - trap, bgmp, https, smtp over 
 end to end delay and segmentation
 
 fuction of each layer, protocols at each layer, definition, look for 2 protocols at each layer (network layer IP), data layer, application transport layer ip layer
+
+
+
+
+
+Yes or no 
+not included 
+General,
+ 
+Chapter 1
+Circuit Switching
+Quantitative Comparison of Packet Switching and Circuit Switching
+Car - Caravan Analogy
+Queuing Delay
+End-to-End Throughput
+ 
+Chapter 2
+DNS - Basics
+HTTP GET
+HTTP RESPONSE
+Browser Caching (ONLY FOR GRADUATE STUDENTS)
+A comparison of client-server and P2P file distribution delays (ONLY FOR GRADUATE STUDENTS)
+ 
+Chapter 3
+Internet checksum
+Reliable data transfer: rdt22
+Reliable data transfer: rdt30
+TCP congestion window evolution
+UDP Mux and Demux
+TCP Mux and Demux
+ 
+ 
+ 
+ explain tcp flow control
+ prevents sender from overflowing receiver, every time receiver exchange data it ... tcp header receiving window, evalueate size of unack data is less than receiving window
+
+ tcp fast retransmit
+ go back n fast retransmit
+
+ segment structure of udp
