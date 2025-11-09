@@ -97,3 +97,15 @@ keep 400 samples, reduce the steps, maybe to like 100
 
 mess with differnet binaries, ...
 cross correlation to see what things give better results, sparsed samples... 
+
+
+
+try giving all information and sensor points, 
+cross correlation, score how well it predicts, plot scatter to avoid fluke from random cherry picks
+for all images in testing set, do compare, trends mean... 
+Systematic proof
+40 - 80 more than 150 channel just gets wider
+
+replusion between points, some points blackout (cant drill in a mountain example)
+
+30-80 changes a lot find where change occurs
