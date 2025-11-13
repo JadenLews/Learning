@@ -1,15 +1,15 @@
-# server_random_order.py
+# server_two_packets.py
 from socket import *
 import os, math, random, struct
 
-PATH = '/Users/jaden/projects/Learning/ComputerNetworks/programming/'
 PORT = 12000
-MAX_UDP = 1400 
+PATH = '/Users/jaden/projects/Learning/ComputerNetworks/programming/'
+MAX = 1400 
 
-def build_chunks(data: bytes, desired_chunks: int):
+def build_chunks(data: bytes, wanted: int = 100):
     size = len(data)
-    chunk_size = max(1, math.ceil(size / max(1, desired_chunks)))
-    chunk_size = min(chunk_size, MAX_UDP - 4)
+    wanted = max(1, wanted)
+    chunk_size = max(1, min(MAX, math.ceil(size / wanted)))
     chunks = [data[i:i+chunk_size] for i in range(0, size, chunk_size)]
     return chunks, chunk_size
 
@@ -19,62 +19,77 @@ def main():
     print(f"Server ready on UDP {PORT}")
 
     while True:
-        req, addr = sock.recvfrom(2048)
-        if req.decode(errors='ignore').strip() != 'rdy':
+        # handshake
+        req, addr = sock.recvfrom(1024)
+        msg = 'rdy'
+        if req != msg.encode():
             continue
-        sock.sendto(b'rdy', addr)
+        sock.sendto(msg.encode(), addr)
+        print(f"handshake complete")
 
-        fname_raw, addr = sock.recvfrom(2048)
-        fname = fname_raw.decode(errors='ignore').strip()
+        # filename
+        fname_raw, addr = sock.recvfrom(4096)
+        fname = fname_raw.decode().strip()
         full = os.path.join(PATH, fname)
         if not os.path.exists(full):
-            sock.sendto(b'ERR_NOFILE', addr)
+            msg = 'file not found'
+            sock.sendto(msg.encode(), addr)
             continue
-        sock.sendto(fname.encode(), addr)
-
-        q_raw, addr = sock.recvfrom(2048)
-        try:
-            desired = int(q_raw.decode(errors='ignore').strip())
-        except ValueError:
-            desired = 100
+            
+        sock.sendto(fname_raw, addr)
+        
 
         with open(full, 'rb') as f:
             data = f.read()
-        chunks, chunk_size = build_chunks(data, desired)
-        total = len(chunks)
 
-        sock.sendto(f'NUM {total} {chunk_size}'.encode(), addr)
+        chunks, chunk_size = build_chunks(data, wanted=100)
+        total = len(chunks)
+        # rec "# of chunks"
+
+        rec, addr = sock.recvfrom(4096)
+        if rec.decode().strip() != '# of chunks':
+            print("Did not receive # of chunks")
+            continue
+
+        # header: total_chunks
+        msg = str(total)
+        sock.sendto(msg.encode(), addr)
 
         # wait for "rdyD"
-        ready, addr = sock.recvfrom(2048)
-        if ready.decode(errors='ignore').strip() != 'rdyD':
+        ready, addr = sock.recvfrom(1024)
+        if ready.decode().strip() != 'rdyD':
             continue
 
         order = list(range(total))
         random.shuffle(order)
         cursor = 0
 
-        # serve until client says close
+        # serve chunks on "next"
         while True:
-            msg, addr = sock.recvfrom(2048)
-            txt = msg.decode(errors='ignore').strip().lower()
-
-            if txt == 'close':
-                print(f"Transfer of {fname} complete for {addr}")
-                break
-
-            if txt not in ('chunk index', 'next'):
-                continue
-
             if cursor < total:
                 idx = order[cursor]
-                payload = chunks[idx]
-                pkt = struct.pack('!I', idx) + payload 
-                sock.sendto(pkt, addr)
+                idx = str(idx)
+                sock.sendto(idx.encode(), addr)  # index packet
+                idx = int(idx)
+                sock.sendto(chunks[idx], addr)     # data packet
                 cursor += 1
             else:
-                # no more
-                sock.sendto(struct.pack('!I', 0xFFFFFFFF), addr)
+                break
+
+            req, addr = sock.recvfrom(1024)
+            txt = req.decode().strip().lower()
+
+            if txt == 'close':
+                print(f"server transfer done")
+                break
+            if txt != 'next':
+                continue
+
+
+        req, addr = sock.recvfrom(1024)
+        if req.decode().strip() == 'close':
+            print(f"Transfer of {fname} complete")
+        
 
 if __name__ == '__main__':
     main()

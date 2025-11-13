@@ -24,17 +24,20 @@ while True:
     if not os.path.exists(full):
         msg= "file not found"
         serverSocket.sendto(msg.encode(), addr)
+        break
     
     serverSocket.sendto(filename.encode(), addr)
+
+       # send size first
+    size = str(os.path.getsize(full))
+    serverSocket.sendto(size.encode(), addr)
 
     while True:
         request, addr = serverSocket.recvfrom(2048)
         if request.decode() == "rdyD":
             break
 
-    # Send size first
-    size = os.path.getsize(full)
-    serverSocket.sendto(struct.pack('!Q', size), addr)
+
 
     with open(full, 'rb') as f:
         while True:

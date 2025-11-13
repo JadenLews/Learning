@@ -4,7 +4,6 @@ import struct, os
 serverName = '127.0.0.1'
 serverPort = 12000
 PATH = '/Users/jaden/projects/Learning/ComputerNetworks/programming/'
-CHUNK = 1400
 
 clientSocket = socket(AF_INET,SOCK_DGRAM)
 clientSocket.settimeout(5.0)
@@ -15,27 +14,27 @@ print("Sent rdy to server")
 
 reply, serverAddress = clientSocket.recvfrom(2048)
 if reply.decode() != "rdy":
-    raise SystemExit("Server not ready")
+    raise SystemExit("server not ready")
 
-filename = input('Enter filename to download:').strip()
+filename = input('Enter filename').strip()
 clientSocket.sendto(filename.encode(),(serverName, serverPort))
 
 
 reply, serverAddress = clientSocket.recvfrom(2048)
 
-if reply.decode() == 'ERR_NOFILE':
-    raise SystemExit("Server says file does not exist")
 if reply.decode() != filename:
-    raise SystemExit("Server did not ack filename")
+    raise SystemExit("server did not ack file")
+
+hdr, srv = clientSocket.recvfrom(8)
+# unpack size of incoming file
+size = int(hdr.decode())
+print(f"expecting {size} bytes")
 
 
 message = "rdyD"
 clientSocket.sendto(message.encode(),(serverName, serverPort))
 print("Sent rdyD to server")
 
-hdr, srv = clientSocket.recvfrom(8)
-(size,) = struct.unpack('!Q', hdr)
-print(f"Expecting {size} bytes")
 
 dst = os.path.join(PATH, "ff" + filename)
 received = 0
@@ -47,6 +46,6 @@ with open(dst, 'wb') as f:
         received += len(chunk)
 
 msg = "close"
-clientSocket.sendto(msg.encode(), serverPort)
+clientSocket.sendto(msg.encode(),(serverName, serverPort))
 
-print(f"File download complete: {dst} ({received} bytes)")
+print(f"download complete:({received} bytes)")

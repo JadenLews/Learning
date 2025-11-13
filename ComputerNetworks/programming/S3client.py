@@ -1,88 +1,86 @@
-# client_random_order.py
+# client_two_packets.py
 from socket import *
 import os, struct
 
 SERVER = '127.0.0.1'
-PORT = 12000
-PATH = '/Users/jaden/projects/Learning/ComputerNetworks/programming/'
-SOCK_TIMEOUT = 2.0
+PORT   = 12000
+PATH   = '/Users/jaden/projects/Learning/ComputerNetworks/programming/'
+TIMEOUT = 2.0
 
 def main():
-    desired_chunks = '100' 
+    filename = input("Enter filename to download: ").strip()
 
     sock = socket(AF_INET, SOCK_DGRAM)
-    sock.settimeout(5.0)
+    sock.settimeout(TIMEOUT)
 
     # handshake
-    sock.sendto(b'rdy', (SERVER, PORT))
-    rdy, srv = sock.recvfrom(2048)
-    if rdy != b'rdy':
-        raise SystemExit("Server not ready")
+    msg = 'rdy'
+    sock.sendto(msg.encode(), (SERVER, PORT))
+    rdy, srv = sock.recvfrom(1024)
+    if rdy != msg.encode():
+        raise SystemExit("not ready")
+    print("handshake complete")
 
-    filename = input("Enter filename to download: ").strip()
-    sock.sendto(filename.encode(), (SERVER, PORT))
+    # send filename
+    sock.sendto(filename.encode(), srv)
 
-    ack, srv = sock.recvfrom(2048)
-    if ack == b'ERR_NOFILE':
-        raise SystemExit("No file")
-    if ack.decode() != filename:
-        raise SystemExit("wrong filename")
+    flnm, srv = sock.recvfrom(1024)
+    if flnm != filename.encode():
+        raise SystemExit("wrong file")
+    
+    # request # of chunks
+    msg = '# of chunks'
+    sock.sendto(msg.encode(), srv)
 
-    # send desired number of chunks
-    sock.sendto(desired_chunks.encode(), srv)
 
-    # server replies: "NUM total chunk_size"
-    reply, srv = sock.recvfrom(2048)
-    parts = reply.decode().strip().split()
-    if len(parts) != 3 or parts[0] != 'NUM':
-        raise SystemExit(f"Unexpected reply: {reply!r}")
-    total = int(parts[1])
-    chunk_size = int(parts[2])
-    print(f"Server reports: total chunks={total}, chunk_size={chunk_size}")
-
-    # ready download
-    sock.sendto(b'rdyD', srv)
+    # header 8 bytes
+    total_chunks, srv = sock.recvfrom(65535)
+    total_chunks = int(total_chunks.decode())
+    print(f"Expecting {total_chunks} chunks")
 
     # storage
-    chunks = [None] * total
+    chunks = [None] * total_chunks
     received = 0
 
-    # first prompt
-    sock.settimeout(SOCK_TIMEOUT)
-    sock.sendto(b'chunk index', srv)
+    # ready download
+    msg = 'rdyD'
+    sock.sendto(msg.encode(), srv)
 
-    while received < total:
+    while received < total_chunks:
         try:
-            pkt, srv = sock.recvfrom(65535)
-        except timeout:
-            sock.sendto(b'next', srv)
-            continue
+            # receive index packet (4 bytes)
+            pkt_idx, srv = sock.recvfrom(4)
+            idx = int(pkt_idx.decode())
 
-        if len(pkt) < 4:
-            sock.sendto(b'next', srv)
-            continue
+            #pkt_size, srv = sock.recvfrom(65535)
+            #size = int(pkt_size.decode())
 
-        (idx,) = struct.unpack('!I', pkt[:4])
-        if idx == 0xFFFFFFFF:
-            if received >= total:
-                break
-            sock.sendto(b'next', srv)
-            continue
 
-        data = pkt[4:]
-        if 0 <= idx < total and chunks[idx] is None:
+            # receive packet for that index
+            data, srv = sock.recvfrom(65535)
             chunks[idx] = data
             received += 1
 
-        sock.sendto(b'next', srv)
+            # next one
+            msg = 'next'
+            sock.sendto(msg.encode(), srv)
 
-    # write assembled file
-    dst = os.path.join(PATH, 'ff' + filename)
+        except timeout:
+            # ask again on timeout
+            msg = 'next'
+            sock.sendto(msg.encode(), srv)
+
+
+
+
+    # write file
+    dst = os.path.join(PATH, f'ff{filename}')
     with open(dst, 'wb') as f:
-        for i in range(total):
+        for i in range(total_chunks):
             f.write(chunks[i] if chunks[i] is not None else b'')
-    print(f"Wrote {dst} ({received}/{total} chunks)")
+    print(f"download complete: {dst} ({received}/{total_chunks} chunks)")
 
+    # close
     sock.sendto(b'close', srv)
     sock.close()
 
