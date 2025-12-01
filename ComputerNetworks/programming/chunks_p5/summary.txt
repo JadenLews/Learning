@@ -1,0 +1,3 @@
+fileName=HW5.pdf
+totalChunks=11
+ownedChunks=[4, 9]
