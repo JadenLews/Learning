@@ -1,3 +1,0 @@
-fileName=HW5.pdf
-totalChunks=11
-ownedChunks=[1, 6]

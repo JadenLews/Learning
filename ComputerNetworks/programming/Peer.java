@@ -23,7 +23,7 @@ public class Peer {
     private volatile int totalChunks = -1;
     private volatile String fileName = "unknown";
 
-    /* ========= CONSTRUCTOR ========= */
+    // CONSTRUCTOR
 
     public Peer(String peerId,
                 String trackerHost, int trackerPort,
@@ -42,27 +42,26 @@ public class Peer {
         this.initialChunksFromTracker = initialChunksFromTracker;
     }
 
-    /* ========= STARTUP ========= */
+    // STARTUP 
 
     public void start() throws IOException {
         Files.createDirectories(chunkDir);
 
-        // Step 1: talk to tracker & get initial chunks
+        // 1: talk to tracker, get chunks
         connectToTrackerAndDownloadInitialChunks();
 
-        // Step 2: write summary file
+        // 2: write summary files
         writeSummaryFile();
 
-        // Step 3: start upload server thread (UPeer)
+        // 3: upload server thread
         Thread uploadThread = new Thread(this::runUploadServer, "UploadServer-" + peerId);
         uploadThread.start();
 
-        // Step 4: start download client thread (DPeer)
+        // 4: start download client thread
         Thread downloadThread = new Thread(this::runDownloadClient, "DownloadClient-" + peerId);
         downloadThread.start();
 
-        System.out.println("Peer " + peerId + " started. UploadPort=" + uploadPort +
-                ", downloadNeighbor=" + downloadNeighborHost + ":" + downloadNeighborPort);
+        System.out.println("Peer " + peerId + " started. UploadPort=" + uploadPort + ", downloadNeighbor=" + downloadNeighborHost + ":" + downloadNeighborPort);
     }
 
     
@@ -78,7 +77,7 @@ public class Peer {
 
 
 
-    /* ========= TALK TO TRACKER ========= */
+    // TALK TO TRACKER
 
     private void connectToTrackerAndDownloadInitialChunks() {
         try (Socket socket = new Socket(trackerHost, trackerPort)) {
@@ -89,29 +88,22 @@ public class Peer {
             sendLine(out, "rdy");
             String resp = readLine(in);
             if (!"rdy".equals(resp)) {
-                System.err.println("Peer " + peerId + ": expected 'rdy', got " + resp);
+                System.err.println("Peer " + peerId + ": expected 'rdy' " + resp);
                 return;
             }
 
             // fName
-            sendLine(out, "fName");
-            resp = readLine(in); // "fName foo.txt"
-            if (resp != null && resp.startsWith("fName")) {
-                String[] parts = resp.split("\\s+", 2);
-                if (parts.length == 2) {
-                    fileName = parts[1];
-                }
-            }
+            resp = readLine(in); 
+            fileName = resp;
+            sendLine(out, resp);
+
             System.out.println("Peer " + peerId + ": tracker fileName=" + fileName);
 
             // # of chunks
-            sendLine(out, "# of chunks");
-            resp = readLine(in); // "# of chunks N"
-            if (resp != null && resp.startsWith("# of chunks")) {
-                String[] parts = resp.split("\\s+");
-                totalChunks = Integer.parseInt(parts[3]);
-                System.out.println("Peer " + peerId + ": totalChunks=" + totalChunks);
-            }
+            resp = readLine(in);
+            totalChunks = Integer.parseInt(resp);
+            sendLine(out, resp);
+            System.out.println("Peer " + peerId + ": totalChunks=" + totalChunks);
 
             // ready to download
             sendLine(out, "rdyD");
@@ -128,7 +120,7 @@ public class Peer {
             sendLine(out, "close");
 
         } catch (IOException e) {
-            System.err.println("Peer " + peerId + ": error talking to tracker - " + e.getMessage());
+            System.err.println("Peer " + peerId + ": error talking to tracker" + e.getMessage());
         }
     }
 
@@ -158,27 +150,27 @@ public class Peer {
 
 
 
-    /** Turn "peer1", "peer2", ... into 0, 1, 2, ... */
+
     private int getPeerIndexFromId() {
         int i = peerId.length() - 1;
         while (i >= 0 && Character.isDigit(peerId.charAt(i))) {
             i--;
         }
-        if (i == peerId.length() - 1) return 0;  // no trailing digits, default 0
+        if (i == peerId.length() - 1) return 0; 
 
         String numStr = peerId.substring(i + 1);
         try {
             int oneBased = Integer.parseInt(numStr);
-            return Math.max(0, (oneBased - 1) % NUM_PEERS_IN_RING); // 0-based
+            return Math.max(0, (oneBased - 1) % NUM_PEERS_IN_RING);
         } catch (NumberFormatException e) {
             return 0;
         }
     }
 
-    /** Partition chunk IDs across peers with no overlap. */
+
     private List<Integer> chooseInitialChunkIndices(int total, int count) {
         List<Integer> result = new ArrayList<>();
-        int myIdx = getPeerIndexFromId(); // 0..NUM_PEERS_IN_RING-1
+        int myIdx = getPeerIndexFromId(); 
 
         for (int i = 0; i < total && result.size() < count; i++) {
             if (i % NUM_PEERS_IN_RING == myIdx) {
@@ -190,7 +182,6 @@ public class Peer {
         return result;
     }
 
-    /* ========= UPLOAD SERVER (UPeer) ========= */
 
     private void runUploadServer() {
         try (ServerSocket serverSocket = new ServerSocket(uploadPort)) {
@@ -238,7 +229,7 @@ public class Peer {
             return;
         }
 
-        // now respond to "chunk index i" requests
+        // respond to requests
         while ((line = readLine(in)) != null) {
             if (line.startsWith("chunk index")) {
                 int idx = Integer.parseInt(line.split("\\s+")[2]);
@@ -260,7 +251,6 @@ public class Peer {
 
 
 private void sendChunkIdList(OutputStream out) throws IOException {
-    // format: "LIST <count>" then each id on its own line, then "END"
     sendLine(out, "LIST " + ownedChunks.size());
     for (int id : ownedChunks) {
         sendLine(out, Integer.toString(id));
@@ -285,10 +275,8 @@ private void sendChunkToNeighbor(int index, OutputStream out) throws IOException
     System.out.println("Peer " + peerId + " UPeer: sent chunk " + index);
 }
 
-    /* ========= DOWNLOAD CLIENT (DPeer) ========= */
 
 private void runDownloadClient() {
-    // Give others time to start their upload servers
     try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
 
     while (true) {
@@ -320,14 +308,14 @@ private void runDownloadClient() {
             if (missing.isEmpty()) {
                 sendLine(out, "close");
 
-                // if we already have the whole file, we’re done
+                // if already have the whole file, done
                 if (totalChunks > 0 && ownedChunks.size() >= totalChunks) {
                     System.out.println("Peer " + peerId + " DPeer: have all chunks!");
                     reconstructFileIfComplete();
                     break;
                 }
 
-                // otherwise, wait a bit and try again later (neighbor may learn more)
+                // otherwise, wait a bit and try again later
                 try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
                 continue;
             }
@@ -382,7 +370,7 @@ private Set<Integer> receiveChunkIdList(InputStream in) throws IOException {
     return ids;
 }
 
-    /* ========= FILE & SUMMARY UTILITIES ========= */
+    // UTILITIES 
 
     private void saveChunkToDisk(int index, byte[] data) throws IOException {
         Path path = chunkDir.resolve("chunk_" + index + ".dat");
@@ -416,26 +404,13 @@ private Set<Integer> receiveChunkIdList(InputStream in) throws IOException {
                     Files.copy(path, out);
                 }
             }
-            System.out.println("Peer " + peerId + ": reconstructed file -> " + outFile);
+            System.out.println("Peer " + peerId + ": reconstructed file to " + outFile);
         } catch (IOException e) {
             System.err.println("Peer " + peerId + ": reconstruction error - " + e.getMessage());
         }
     }
 
-    /* ========= LOW-LEVEL I/O HELPERS ========= */
-
-    private static void sendLine(BufferedWriter out, String msg) throws IOException {
-        out.write(msg);
-        out.write("\n");
-        out.flush();
-    }
-
-    private static void expectLine(BufferedReader in, String expected) throws IOException {
-        String line = in.readLine();
-        if (!expected.equals(line)) {
-            throw new IOException("Expected '" + expected + "', got '" + line + "'");
-        }
-    }
+    // HELPERS
 
     private static void sendLine(OutputStream out, String msg) throws IOException {
         out.write((msg + "\n").getBytes("UTF-8"));
@@ -466,11 +441,11 @@ private Set<Integer> receiveChunkIdList(InputStream in) throws IOException {
         return buf;
     }
 
-    /* ========= MAIN ========= */
+    // MAIN
 
-    // Usage:
-    // java Peer <peerId> <trackerHost> <trackerPort> <uploadPort>
-    //           <downloadNeighborHost> <downloadNeighborPort>
+    // how to use:
+    // java Peer <peerId> <trackerIP> <trackerPort> <uploadPort>
+    //           <downloadNeighborIP> <downloadNeighborPort>
     //           <chunkDir> <initialChunksFromTracker>
     public static void main(String[] args) throws Exception {
         if (args.length != 8) {

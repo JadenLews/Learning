@@ -6,22 +6,25 @@ import java.util.List;
 
 public class Tracker {
 
-    private static final int CHUNK_SIZE = 10 * 1024; // 10 KB
+    private static final int CHUNK_SIZE = 10 * 1024; // 10 kB
 
     private final String fileName;
-    private final List<byte[]> chunks;
+    private final Path chunkDir;
+    private final int totalChunks;
 
     public Tracker(String filePath) throws IOException {
         Path path = Paths.get(filePath);
         this.fileName = path.getFileName().toString();
-        this.chunks = splitIntoChunks(Files.readAllBytes(path), CHUNK_SIZE);
-        System.out.println("Tracker: file=" + fileName +
-                ", totalChunks=" + chunks.size());
+
+        this.chunkDir = path.getParent().resolve(fileName + "_chunks");
+        Files.createDirectories(chunkDir);
+
+        // chunk files on disk 
+        this.totalChunks = splitIntoChunks(path, CHUNK_SIZE);
+        System.out.println("Tracker: file=" + fileName + ", total chunks=" + totalChunks);
     }
 
-
-
-        private static void sendLine(OutputStream out, String msg) throws IOException {
+    private static void sendLine(OutputStream out, String msg) throws IOException {
         out.write((msg + "\n").getBytes("UTF-8"));
         out.flush();
     }
@@ -31,15 +34,17 @@ public class Tracker {
         int ch;
         while ((ch = in.read()) != -1) {
             if (ch == '\n') break;
-            if (ch != '\r') sb.append((char) ch);
+            if (ch != '\r'){
+                sb.append((char) ch);
+            }
         }
         if (sb.length() == 0 && ch == -1) {
-            return null; // EOF
+            return null; // end of file
         }
         return sb.toString();
     }
 
-    /* ========== STARTUP ========= */
+    // STARTUP
 
     public void startServer(int port) throws IOException {
         ServerSocket serverSocket = new ServerSocket(port);
@@ -47,42 +52,39 @@ public class Tracker {
 
         while (true) {
             Socket peerSocket = serverSocket.accept();
-            System.out.println("Tracker: peer connected from "
-                    + peerSocket.getRemoteSocketAddress());
+            System.out.println("Tracker: peer connected from " + peerSocket.getRemoteSocketAddress());
             new Thread(() -> handlePeer(peerSocket)).start();
         }
     }
 
-    /* ========== PROTOCOL HANDLING (CLIENT–SERVER DIAGRAM) ========= */
+    // PROTOCOL HANDLING
 
     private void handlePeer(Socket socket) {
         try {
             InputStream in = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
 
-            // 1. handshake: rdy / rdy
+            // 1 rdy / rdy
             String line = readLine(in);
             if (!"rdy".equals(line)) {
-                System.out.println("Tracker: expected 'rdy', got " + line);
+                System.out.println("Tracker: expected 'rdy' got " + line);
                 return;
             }
             sendLine(out, "rdy");
 
-            // 2. fName exchange
+            // 2 file name exchange
+            sendLine(out, fileName);
             line = readLine(in);
-            if ("fName".equals(line)) {
-                sendLine(out, "fName " + fileName);
-            } else {
-                System.out.println("Tracker: expected 'fName', got " + line);
+            if (!fileName.equals(line)) {
+                System.out.println("Tracker: expected file name '" + fileName + "', got '" + line + "'");
                 return;
             }
 
             // 3. # of chunks
+            sendLine(out, "" + totalChunks);
             line = readLine(in);
-            if ("# of chunks".equals(line)) {
-                sendLine(out, "# of chunks " + chunks.size());
-            } else {
-                System.out.println("Tracker: expected '# of chunks', got " + line);
+            if (!line.equals("" + totalChunks)) {
+                System.out.println("Tracker: expected '# of chunks " + totalChunks + "', got " + line);
                 return;
             }
 
@@ -93,7 +95,7 @@ public class Tracker {
                 return;
             }
 
-            // 5. loop: chunk index / next / close
+            // 5. loop chunk index -> next -> close
             while ((line = readLine(in)) != null) {
                 if (line.startsWith("chunk index")) {
                     int index = Integer.parseInt(line.split("\\s+")[2]);
@@ -101,58 +103,74 @@ public class Tracker {
                 } else if ("next".equals(line)) {
                     continue;
                 } else if ("close".equals(line)) {
-                    System.out.println("Tracker: peer closed connection");
+                    System.out.println("Tracker: closed connection");
                     break;
                 } else {
-                    System.out.println("Tracker: unknown command: " + line);
+                    System.out.println("Tracker: wrong command " + line);
                 }
             }
 
         } catch (IOException e) {
-            System.out.println("Tracker: error with peer - " + e.getMessage());
+            System.out.println("Tracker: error peer - " + e.getMessage());
         } finally {
             try { socket.close(); } catch (IOException ignored) {}
         }
     }
 
     private void handleChunkRequest(int index, OutputStream out) throws IOException {
-        if (index < 0 || index >= chunks.size()) {
+        if (index < 0 || index >= totalChunks) {
             System.out.println("Tracker: invalid chunk index " + index);
             sendLine(out, "chunk size 0");
             return;
         }
 
-        byte[] chunk = chunks.get(index);
-        sendLine(out, "chunk size " + chunk.length);
-        out.write(chunk);
+        Path chunkPath = chunkDir.resolve("chunk_" + index + ".dat");
+        if (!Files.exists(chunkPath)) {
+            System.out.println("Tracker: chunk file missing for index " + index);
+            sendLine(out, "chunk size 0");
+            return;
+        }
+
+        long size = Files.size(chunkPath);
+        sendLine(out, "chunk size " + size);
+
+        // give this chunk file to peer
+        try (InputStream in = Files.newInputStream(chunkPath)) {
+            byte[] buffer = new byte[8192];
+            int n;
+            while ((n = in.read(buffer)) != -1) {
+                out.write(buffer, 0, n);
+            }
+        }
         out.flush();
 
-        System.out.println("Tracker: sent chunk " + index + " (" + chunk.length + " bytes)");
+        System.out.println("Tracker: sent chunk " + index + " (" + size + " bytes)");
     }
 
+    // UTILITIES 
+    private int splitIntoChunks(Path src, int chunkSize) throws IOException {
+        int idx = 0;
+        byte[] buffer = new byte[chunkSize];
 
-    /* ========== UTILITIES ========= */
-
-    private static List<byte[]> splitIntoChunks(byte[] data, int chunkSize) {
-        List<byte[]> result = new ArrayList<>();
-        int offset = 0;
-        while (offset < data.length) {
-            int end = Math.min(offset + chunkSize, data.length);
-            int len = end - offset;
-            byte[] chunk = new byte[len];
-            System.arraycopy(data, offset, chunk, 0, len);
-            result.add(chunk);
-            offset = end;
+        try (InputStream in = Files.newInputStream(src)) {
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                Path chunkPath = chunkDir.resolve("chunk_" + idx + ".dat");
+                try (OutputStream out = Files.newOutputStream(chunkPath)) {
+                    out.write(buffer, 0, read);
+                }
+                idx++;
+            }
         }
-        return result;
+        return idx;
     }
 
-    /* ========= MAIN ========= */
+    // MAIN 
 
-    // Usage: java Tracker <port> <filePath>
+    // How to run: java Tracker <port> <filePath>
     public static void main(String[] args) throws Exception {
         if (args.length != 2) {
-            System.err.println("Usage: java Tracker <port> <filePath>");
+            System.err.println("java Tracker <port> <filePath>");
             System.exit(1);
         }
         int port = Integer.parseInt(args[0]);
