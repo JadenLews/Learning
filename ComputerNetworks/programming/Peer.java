@@ -222,10 +222,15 @@ public class Peer {
         // send our chunk ID list
         sendChunkIdList(out);
 
-        // wait for "rdyD"
+        
         line = readLine(in);
+        if ("close".equals(line)) {
+            // neighbor doesn't need anything after seeing our list
+            System.out.println("Peer " + peerId + " UPeer: neighbor closed after list");
+            return;
+        }
         if (!"rdyD".equals(line)) {
-            System.out.println("Peer " + peerId + " UPeer: expected 'rdyD', got " + line);
+            System.out.println("Peer " + peerId + " UPeer: expected 'rdyD' or 'close', got " + line);
             return;
         }
 
@@ -312,12 +317,10 @@ private void runDownloadClient() {
                 if (totalChunks > 0 && ownedChunks.size() >= totalChunks) {
                     System.out.println("Peer " + peerId + " DPeer: have all chunks!");
                     reconstructFileIfComplete();
-                    break;
                 }
 
                 // otherwise, wait a bit and try again later
                 try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-                continue;
             }
 
             // ready to download chunks
@@ -344,7 +347,6 @@ private void runDownloadClient() {
             if (totalChunks > 0 && ownedChunks.size() >= totalChunks) {
                 System.out.println("Peer " + peerId + " DPeer: have all chunks!");
                 reconstructFileIfComplete();
-                break;
             }
 
             // Allow time for ring propagation before the next round
