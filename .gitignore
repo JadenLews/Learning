@@ -3,3 +3,7 @@ DeepLearn/Data200x200_withInfo
 DeepLearn/Uniform200x200withInfo
 DeepLearn/Uniform200x200withInfo.zip
 .gitignore
+/DeepLearn/physics/sim_test/output
+/DeepLearn/physics/sim_test/output2
+/DeepLearn/physics/sim_test/output_modified_press
+/DeepLearn/physics/sim_test/output_modified
