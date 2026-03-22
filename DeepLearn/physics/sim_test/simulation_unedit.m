@@ -5,15 +5,11 @@ close all
 % Poisson equation solved on 2D grid - fluids ak
 
 % Erosion and deposition depending on thresholds selected.
-pkg load image
-output_dir = '/Users/jaden/projects/Learning/DeepLearn/physics/sim_test/output2';
-if ~exist(output_dir, 'dir')
-    mkdir(output_dir);
-end
-cd(output_dir);
+
+cd('/Volumes/Backup/dataset/');  %comment out if you don't want snap shots.
 
 start_sim_no = 26;
-nmax = 26;  % number of simulations examples you want
+nmax = 10000;  % number of simulations examples you want
 iskip = 1; % number of times steps before saving image snapshots. Change to 1 to save every time step
 ttstep =  201;  % Number of time steps for flux increments
 
@@ -144,6 +140,13 @@ for sim_no= start_sim_no:nmax
         end
         phi_ave(tt) = sum(sum(phi));
         
+        tt_p = mod(tt,iskip);
+        if (tt_p == 1)
+            % write jpg or bmp depending on resolution needed
+            filewrite =  strcat('Image-',int2str(sim_no),'-',int2str(tt),'.jpg');
+            %      filewrite =  strcat('Image-',int2str(sim_no),'-3-',int2str(tt),'.bmp');
+            imwrite(phi,filewrite);
+        end
         
         %     Changed the conductivity contrast to be 100 times lower.
         K = (2.0 * 10^(-10) + ((3.0 * 10^(-7)) *(1- phi/phi_max))) * 10^6;    % mm^2  linear map to measured values
@@ -178,31 +181,8 @@ for sim_no= start_sim_no:nmax
             B = circshift(P,[1 0]) +circshift(P,[-1 0]) +circshift(P,[0 1]) +circshift(P,[0 -1]);
             P = (B +rdivide(times(DPX,DKX), K) +rdivide(times(DPY, DKY), K))/4;
         end
-
-
         VX = - times(K,DPX);
         VY = - times(K,DPY);
-
-        flux_y = sum(VY,2)/gridsize(2);
-        ave_flux(tt) = sum(flux_y)/gridsize(1);
-        K_ave(tt) = ave_flux(tt);
-        VX = V_imposed/ave_flux(tt) * VX;
-        VY = V_imposed/ave_flux(tt) * VY;
-
-        tt_p = mod(tt-1, iskip);
-        if (tt_p == 0)
-            phi_file = fullfile(output_dir, strcat('Image-', int2str(sim_no), '-', int2str(tt), '_phi.jpg'));
-            P_file   = fullfile(output_dir, strcat('Image-', int2str(sim_no), '-', int2str(tt), '_P.jpg'));
-            K_file   = fullfile(output_dir, strcat('Image-', int2str(sim_no), '-', int2str(tt), '_K.jpg'));
-
-            save_file = fullfile(output_dir, strcat('State-', int2str(sim_no), '-', int2str(tt), '.mat'));
-
-            imwrite(phi, phi_file);
-            imwrite(P,   P_file);
-            imwrite(K,   K_file);
-
-            save('-mat7-binary', save_file, 'phi', 'K', 'P', 'VX', 'VY');
-        end
         
         flux_y = sum(VY,2)/gridsize(2);
         
@@ -210,23 +190,6 @@ for sim_no= start_sim_no:nmax
         K_ave(tt) = ave_flux(tt);
         VX = V_imposed/ave_flux(tt) * VX;   %Scale to imposed flow
         VY = V_imposed/ave_flux(tt) * VY;   %Scale to imposed flow
-
-        Vmag = sqrt(VX.^2 + VY.^2);
-        disp(['step ', int2str(tt), ...
-            ' mean(V)=', num2str(mean(Vmag(:))), ...
-            ' max(V)=', num2str(max(Vmag(:)))]);
-
-                disp(['step ', int2str(tt), ...
-        ' P min=', num2str(min(P(:))), ...
-        ' P mean=', num2str(mean(P(:))), ...
-        ' P median=', num2str(median(P(:))), ...
-        ' P max=', num2str(max(P(:)))]);
-
-            disp(['step ', int2str(tt), ...
-                ' K min=', num2str(min(K(:))), ...
-                ' K mean=', num2str(mean(K(:))), ...
-                ' K median=', num2str(median(K(:))), ...
-                ' K max=', num2str(max(K(:)))]);
         
         clims = [0 1];
         % See the image of eroded system over time.
@@ -236,7 +199,6 @@ for sim_no= start_sim_no:nmax
         axis equal tight off
         colorbar;
         
-        old_phi = phi;
         for i = gridsize(1)-1:-1:2
             for j = gridsize(2)-1:-1:2
                 
@@ -317,9 +279,6 @@ for sim_no= start_sim_no:nmax
             end
             
         end
-        phi_change = sum(abs(phi(:) - old_phi(:)));
-        disp(['step ', int2str(tt), ' phi change = ', num2str(phi_change)]);
-
         phi(gridsize(1),:) = 0;
         
     end

@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
 
-OUTPUT_DIR = "/Users/jaden/projects/Learning/DeepLearn/physics/sim_test/output2"
+OUTPUT_DIR = "./output_folder"
 
 
 def load_gray(path: str) -> np.ndarray:
@@ -14,7 +14,7 @@ def load_gray(path: str) -> np.ndarray:
     return arr.astype(np.float32)
 
 
-def load_fields_from_jpg(sim_no: int, step: int, output_dir: str = OUTPUT_DIR):
+def load_from_jpg(sim_no: int, step: int, output_dir: str = OUTPUT_DIR):
     k_path = os.path.join(output_dir, f"Image-{sim_no}-{step}_K.jpg")
     p_path = os.path.join(output_dir, f"Image-{sim_no}-{step}_P.jpg")
     phi_path = os.path.join(output_dir, f"Image-{sim_no}-{step}_phi.jpg")
@@ -25,7 +25,7 @@ def load_fields_from_jpg(sim_no: int, step: int, output_dir: str = OUTPUT_DIR):
     return K, P, phi
 
 
-def load_fields_from_mat(sim_no: int, step: int, output_dir: str = OUTPUT_DIR):
+def load_from_mat(sim_no: int, step: int, output_dir: str = OUTPUT_DIR):
     mat_path = os.path.join(output_dir, f"State-{sim_no}-{step}.mat")
     if not os.path.exists(mat_path):
         raise FileNotFoundError(f"Could not find file: {mat_path}")
@@ -147,18 +147,15 @@ def plot_residuals_side_by_side(dmap_mat: np.ndarray, dmap_jpg: np.ndarray):
 
 def main():
     sim_no = 26
-    step = 150
+    step = 85
 
-    K_mat, P_mat, phi_mat, VX_mat, VY_mat = load_fields_from_mat(sim_no, step)
-    K_jpg, P_jpg, phi_jpg = load_fields_from_jpg(sim_no, step)
+    K_mat, P_mat, phi_mat, VX_mat, VY_mat = load_from_mat(sim_no, step)
+    K_jpg, P_jpg, phi_jpg = load_from_jpg(sim_no, step)
 
     P_jpg = P_jpg / 255.0
     K_jpg = K_jpg / 255.0
     phi_jpg = phi_jpg / 255.0
 
-    # # match jpg ranges to mat ranges
-    # P_jpg = P_jpg * (P_mat.max() - P_mat.min()) + P_mat.min()
-    # K_jpg = K_jpg * (K_mat.max() - K_mat.min()) + K_mat.min()
 
     dmap_mat = darcy_map_from_fields(K_mat, P_mat)
     dmap_jpg = darcy_map_from_fields(K_jpg, P_jpg)
