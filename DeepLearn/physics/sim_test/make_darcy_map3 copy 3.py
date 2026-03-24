@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
 
-OUTPUT_DIR = "./output_folder"
+OUTPUT_DIR = "./output_quan"
 
 
 def load_gray(path: str) -> np.ndarray:
@@ -208,11 +208,11 @@ def plot_residuals_side_by_side(dmap1: np.ndarray, dmap2: np.ndarray, label1: st
 
 def main():
     sim_no = 26
-    step = 35
+    step = 45
 
     # choose any two sources you want to compare
-    source1 = "jpg_255"
-    source2 = "mat_255"
+    source1 = "mat_raw"
+    source2 = "jpg_255"
 
     # useful examples:
     # source1 = "mat_raw"; source2 = "mat_255"   # pure scaling effect

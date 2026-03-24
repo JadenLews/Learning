@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
 
-OUTPUT_DIR = "/Users/jaden/projects/Learning/DeepLearn/physics/sim_test/output_modified_press"
-OUTPUT_DIR = "/Users/jaden/projects/Learning/DeepLearn/physics/sim_test/output1"
+#OUTPUT_DIR = "/Users/jaden/projects/Learning/DeepLearn/physics/sim_test/output_modified_press"
+OUTPUT_DIR = "/Users/jaden/projects/Learning/DeepLearn/physics/sim_test/output2"
 
 
 def load_fields_from_mat(sim_no: int, step: int, output_dir: str = OUTPUT_DIR):
