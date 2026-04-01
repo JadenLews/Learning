@@ -237,7 +237,7 @@ class FixedDenseDatasetFull(torch.utils.data.Dataset):
         return z,t_label
     
     def __len__(self):
-        return self.sims.shape[0] * self.steps * len(self.types)
+        return self.sims.shape[0] * self.num_steps() * len(self.types)
     
 
 
@@ -384,7 +384,7 @@ class FixedDenseDatasetFullDelta(torch.utils.data.Dataset):
         return z,t_label
     
     def __len__(self):
-        return self.sims.shape[0] * self.steps * len(self.types)
+        return self.sims.shape[0] * self.num_steps() * len(self.types)
     
 
 
@@ -699,7 +699,7 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
         return sample,z,mask
     
     def __len__(self):
-        return self.sims.shape[0] * self.steps * len(self.types)
+        return self.sims.shape[0] * self.num_steps() * len(self.types)
 
 
 class RandomDenseDatasetLimited(torch.utils.data.Dataset):
@@ -869,4 +869,4 @@ class RandomDenseDatasetLimited(torch.utils.data.Dataset):
         return sample,z,mask
     
     def __len__(self):
-        return self.sims.shape[0] * self.steps * len(self.types)
+        return self.sims.shape[0] * self.num_steps() * len(self.types)
