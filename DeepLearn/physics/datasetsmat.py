@@ -8,8 +8,8 @@ This file assumes a certain file structure.
 Adjust paths to your project specifications below.
 '''
 # Folders
-BINARY_FOLDER = "../Data200x200_withinfo"
-UNIFORM_FOLDER = "../Uniform200x200withInfo"
+BINARY_FOLDER = ".../Data200x200_withinfo"
+UNIFORM_FOLDER = ".../Uniform200x200withInfo"
 
 import os
 
@@ -21,16 +21,26 @@ def get_folders(kind, binary_folder=None, uniform_folder=None):
     return binary_folder if kind == 0 else uniform_folder
 
 
-def get_phi(sim, step, folder):
-    return cv2.imread(f"{folder}/Image-{sim}-{step}_phi.jpg", cv2.IMREAD_GRAYSCALE)
+def get_phi(sim,step,folder):
+    path = f"{folder}/Image-{sim}-{step}_phi.jpg"
+    arr = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    if arr is None:
+        raise FileNotFoundError(f"Could not read phi image: {path}")
+    return arr
 
+def get_pres(sim,step,folder):
+    path = f"{folder}/Image-{sim}-{step}_P.jpg"
+    arr = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    if arr is None:
+        raise FileNotFoundError(f"Could not read P image: {path}")
+    return arr
 
-def get_pres(sim, step, folder):
-    return cv2.imread(f"{folder}/Image-{sim}-{step}_P.jpg", cv2.IMREAD_GRAYSCALE)
-
-
-def get_k(sim, step, folder):
-    return cv2.imread(f"{folder}/Image-{sim}-{step}_K.jpg", cv2.IMREAD_GRAYSCALE)
+def get_k(sim,step,folder):
+    path = f"{folder}/Image-{sim}-{step}_K.jpg"
+    arr = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    if arr is None:
+        raise FileNotFoundError(f"Could not read K image: {path}")
+    return arr
 
 
 def get_all_jpg(sim, step, folder, scale_mode="raw255"):

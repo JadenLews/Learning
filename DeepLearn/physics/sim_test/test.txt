@@ -6,3 +6,5 @@
 octave --quiet simulation_with_mat.m    
 conda activate C:\Users\jaden\anaconda3\envs\newww
 octave --quiet --eval "run('C:/github/Learning/DeepLearn/physics/sim_test/simulation_with_mat.m')"
+
+octave --quiet --eval "run('simulation_with_matcopy.m')"

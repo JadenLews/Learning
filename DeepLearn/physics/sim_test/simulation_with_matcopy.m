@@ -12,8 +12,8 @@ if ~exist(output_dir, 'dir')
     mkdir(output_dir);
 end
 
-start_sim_no = 26;
-nmax = 26;  % number of simulations examples you want
+start_sim_no = 27;
+nmax = 29;  % number of simulations examples you want
 iskip = 1; % number of times steps before saving image snapshots. Change to 1 to save every time step
 ttstep =  201;  % Number of time steps for flux increments
 
