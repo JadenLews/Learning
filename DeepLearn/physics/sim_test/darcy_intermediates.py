@@ -4,27 +4,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
 
+OUTPUT_DIR = "../../Data200x200_withInfo"
 OUTPUT_DIR = "./output_quan"
 
-SIM_NO = 26
-STEP = 200
 
-# choose any two sources
-SOURCE1 = "mat_u8"
-SOURCE2 = "jpg_255"
+SIM_NO = 26
+STEP = 150
+
+# two sources
+SOURCE1 = "jpg_255"
+SOURCE2 = "mat_u8"
 
 TOP_TRIM = 25
 BOTTOM_TRIM = 15
 
 
-def load_gray(path: str) -> np.ndarray:
+def load_gray(path):
     arr = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     if arr is None:
         raise FileNotFoundError(f"Could not read file: {path}")
     return arr.astype(np.float32)
 
 
-def load_from_jpg(sim_no: int, step: int, output_dir: str = OUTPUT_DIR):
+def load_from_jpg(sim_no, step, output_dir = OUTPUT_DIR):
     k_path = os.path.join(output_dir, f"Image-{sim_no}-{step}_K.jpg")
     p_path = os.path.join(output_dir, f"Image-{sim_no}-{step}_P.jpg")
     phi_path = os.path.join(output_dir, f"Image-{sim_no}-{step}_phi.jpg")
@@ -35,7 +37,7 @@ def load_from_jpg(sim_no: int, step: int, output_dir: str = OUTPUT_DIR):
     return K, P, phi
 
 
-def load_from_mat(sim_no: int, step: int, output_dir: str = OUTPUT_DIR, variant: str = "raw"):
+def load_from_mat(sim_no, step, output_dir = OUTPUT_DIR, variant = "raw"):
     mat_path = os.path.join(output_dir, f"State-{sim_no}-{step}.mat")
     if not os.path.exists(mat_path):
         raise FileNotFoundError(f"Could not find file: {mat_path}")
@@ -81,19 +83,19 @@ def load_source(sim_no: int, step: int, source: str):
     elif source == "jpg_255":
         return load_from_jpg(sim_no, step)
     else:
-        raise ValueError("invalid source")
+        raise ValueError("invalid")
 
 
 def compute_darcy_parts(K: np.ndarray, P: np.ndarray):
     dP_dy, dP_dx = np.gradient(P)
 
-    y_flux = K * dP_dy
-    x_flux = K * dP_dx
+    y_veloc = K * dP_dy
+    x_veloc = K * dP_dx
 
-    d_yflux_dy = np.gradient(y_flux, axis=0)
-    d_xflux_dx = np.gradient(x_flux, axis=1)
+    d_yveloc_dy = np.gradient(y_veloc, axis=0)
+    d_xveloc_dx = np.gradient(x_veloc, axis=1)
 
-    residual = d_yflux_dy + d_xflux_dx
+    residual = d_yveloc_dy + d_xveloc_dx
     residual_sq = residual ** 2
 
     return {
@@ -101,20 +103,20 @@ def compute_darcy_parts(K: np.ndarray, P: np.ndarray):
         "K": K,
         "dP_dy": dP_dy,
         "dP_dx": dP_dx,
-        "y_flux": y_flux,
-        "x_flux": x_flux,
-        "d_yflux_dy": d_yflux_dy,
-        "d_xflux_dx": d_xflux_dx,
+        "y_veloc": y_veloc,
+        "x_veloc": x_veloc,
+        "d_yveloc_dy": d_yveloc_dy,
+        "d_xveloc_dx": d_xveloc_dx,
         "residual": residual,
         "residual_sq": residual_sq,
     }
 
 
-def trim_map(arr: np.ndarray) -> np.ndarray:
+def trim_map(arr):
     return arr[TOP_TRIM:-BOTTOM_TRIM, :]
 
 
-def summarize(name: str, arr: np.ndarray):
+def summarize(name, arr):
     print(
         f"{name:16s} | shape={arr.shape} "
         f"min={arr.min():.6g} max={arr.max():.6g} "
@@ -122,35 +124,53 @@ def summarize(name: str, arr: np.ndarray):
     )
 
 
-def plot_part_comparison(parts1: dict, parts2: dict, label1: str, label2: str):
+def plot_part_comparison(parts1, parts2, label1, label2):
     keys = [
         "P", "K",
         "dP_dy", "dP_dx",
-        "y_flux", "x_flux",
-        "d_yflux_dy", "d_xflux_dx",
+        "y_veloc", "x_veloc",
+        "d_yveloc_dy", "d_xveloc_dx",
         "residual", "residual_sq"
     ]
 
-    fig, axs = plt.subplots(len(keys), 2, figsize=(10, 3 * len(keys)))
+    ncols = 3
+    nrows = int(np.ceil(len(keys) / 2))
+
+    fig, axs = plt.subplots(nrows, 4, figsize=(18, 2 * nrows))
+    axs = np.array(axs).reshape(nrows, 4)
 
     for i, key in enumerate(keys):
+        r = i // 2
+        c_offset = (i % 2) * 2
+
         arr1 = trim_map(parts1[key])
         arr2 = trim_map(parts2[key])
 
-        im1 = axs[i, 0].imshow(arr1, cmap="viridis")
-        axs[i, 0].set_title(f"{key} ({label1})")
-        plt.colorbar(im1, ax=axs[i, 0], fraction=0.046, pad=0.04)
+        ax1 = axs[r, c_offset]
+        ax2 = axs[r, c_offset + 1]
 
-        im2 = axs[i, 1].imshow(arr2, cmap="viridis")
-        axs[i, 1].set_title(f"{key} ({label2})")
-        plt.colorbar(im2, ax=axs[i, 1], fraction=0.046, pad=0.04)
+        im1 = ax1.imshow(arr1, cmap="viridis")
+        ax1.set_title(f"{key}\n({label1})", fontsize=8)
+        plt.colorbar(im1, ax=ax1, fraction=0.03, pad=0.01)
 
-        axs[i, 0].set_xticks([])
-        axs[i, 0].set_yticks([])
-        axs[i, 1].set_xticks([])
-        axs[i, 1].set_yticks([])
+        im2 = ax2.imshow(arr2, cmap="viridis")
+        ax2.set_title(f"{key}\n({label2})", fontsize=8)
+        plt.colorbar(im2, ax=ax2, fraction=0.03, pad=0.01)
 
-    plt.tight_layout()
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+
+    total_slots = nrows * 2
+    if len(keys) < total_slots:
+        for j in range(len(keys), total_slots):
+            r = j // 2
+            c_offset = (j % 2) * 2
+            axs[r, c_offset].axis("off")
+            axs[r, c_offset + 1].axis("off")
+
+    plt.tight_layout(pad=0.5)
     plt.show()
 
 
@@ -158,14 +178,22 @@ def plot_difference_maps(parts1: dict, parts2: dict, label1: str, label2: str):
     keys = [
         "P", "K",
         "dP_dy", "dP_dx",
-        "y_flux", "x_flux",
-        "d_yflux_dy", "d_xflux_dx",
+        "y_veloc", "x_veloc",
+        "d_yveloc_dy", "d_xveloc_dx",
         "residual", "residual_sq"
     ]
 
-    fig, axs = plt.subplots(len(keys), 1, figsize=(6, 3 * len(keys)))
+    ncols = 4
+    nrows = int(np.ceil(len(keys) / ncols))
+
+    fig, axs = plt.subplots(nrows, ncols, figsize=(18, 3 * nrows))
+    axs = np.array(axs).reshape(nrows, ncols)
 
     for i, key in enumerate(keys):
+        r = i // ncols
+        c = i % ncols
+        ax = axs[r, c]
+
         arr1 = trim_map(parts1[key])
         arr2 = trim_map(parts2[key])
 
@@ -174,11 +202,17 @@ def plot_difference_maps(parts1: dict, parts2: dict, label1: str, label2: str):
         a2 = (arr2 - arr2.min()) / (arr2.max() - arr2.min() + 1e-12)
         diff = np.abs(a1 - a2)
 
-        im = axs[i].imshow(diff, cmap="magma")
-        axs[i].set_title(f"|normalized diff| of {key}: {label1} vs {label2}")
-        plt.colorbar(im, ax=axs[i], fraction=0.046, pad=0.04)
-        axs[i].set_xticks([])
-        axs[i].set_yticks([])
+        im = ax.imshow(diff, cmap="magma")
+        ax.set_title(f"|normalized diff| of {key}\n{label1} vs {label2}", fontsize=10)
+        plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    # hide any unused axes
+    for j in range(len(keys), nrows * ncols):
+        r = j // ncols
+        c = j % ncols
+        axs[r, c].axis("off")
 
     plt.tight_layout()
     plt.show()
@@ -193,7 +227,7 @@ def main():
 
     print(f"Comparing {SOURCE1} vs {SOURCE2}\n")
 
-    for key in ["P", "K", "dP_dy", "dP_dx", "y_flux", "x_flux", "d_yflux_dy", "d_xflux_dx", "residual", "residual_sq"]:
+    for key in ["P", "K", "dP_dy", "dP_dx", "y_veloc", "x_veloc", "d_yveloc_dy", "d_xveloc_dx", "residual", "residual_sq"]:
         summarize(f"{key} ({SOURCE1})", trim_map(parts1[key]))
         summarize(f"{key} ({SOURCE2})", trim_map(parts2[key]))
         print()
