@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import cv2
+from scipy.io import loadmat
 
 '''
 This file assumes a certain file structure.
@@ -25,6 +26,13 @@ def get_k(sim,step,folder):
 # Get all 3 as a 3-channel matrix
 def get_all(sim,step,folder):
     return np.array((get_k(sim,step,folder), get_pres(sim,step,folder), get_phi(sim,step,folder)), dtype=np.float32)
+
+def get_all_mat(sim, step, folder):
+    data = loadmat(f"{folder}/State-{sim}-{step}.mat")
+    K = np.array(data["K"], dtype=np.float32).squeeze()
+    P = np.array(data["P"], dtype=np.float32).squeeze()
+    phi = np.array(data["phi"], dtype=np.float32).squeeze()
+    return np.array((K, P, phi), dtype=np.float32)
 
 '''
 Actual Datasets below
