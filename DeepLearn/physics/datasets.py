@@ -8,30 +8,29 @@ This file assumes a certain file structure.
 Adjust paths to your project specifications below.
 '''
 # Folders
-BINARY_FOLDER = "../Data200x200_withinfo"
-UNIFORM_FOLDER = "../Uniform200x200withInfo"
 
-# Get porosity phi
-def get_phi(sim,step,folder):
-    return cv2.imread(f"{folder}/Image-{sim}-{step}_phi.jpg", cv2.IMREAD_GRAYSCALE)
+BINARY_FOLDER = "../Data200x200_withinfo_Deterministic"
+UNIFORM_FOLDER = "../Uniform200x200withInfo_Deterministic"
 
-# Get pressure
-def get_pres(sim,step,folder):
-    return cv2.imread(f"{folder}/Image-{sim}-{step}_P.jpg", cv2.IMREAD_GRAYSCALE)
+def get_all(sim, step, folder):
+    path = f"{folder}/Sim-{sim}-Step-{step}.png"
+    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
 
-# Get conductivity K
-def get_k(sim,step,folder):
-    return cv2.imread(f"{folder}/Image-{sim}-{step}_K.jpg", cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        raise FileNotFoundError(path)
 
-# Get all 3 as a 3-channel matrix
-def get_all(sim,step,folder):
-    return np.array((get_k(sim,step,folder), get_pres(sim,step,folder), get_phi(sim,step,folder)), dtype=np.float32)
+    # convert to float32
+    img = img.astype(np.float32)
 
-def get_all_mat(sim, step, folder):
-    data = loadmat(f"{folder}/State-{sim}-{step}.mat")
-    K = np.array(data["K"], dtype=np.float32).squeeze()
-    P = np.array(data["P"], dtype=np.float32).squeeze()
-    phi = np.array(data["phi"], dtype=np.float32).squeeze()
+    # normalize from [0,255] → [-1,1]
+    img = img / 255.0           # [0,1]
+    img = img * 2.0 - 1.0       # [-1,1]
+
+    # OpenCV loads as BGR
+    K   = img[:, :, 0]  # blue
+    P   = img[:, :, 1]  # green
+    phi = img[:, :, 2]  # red
+
     return np.array((K, P, phi), dtype=np.float32)
 
 '''
@@ -412,7 +411,8 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
                  H=200,
                  W=200,
                  channels="all",
-                 future_delta=0):
+                 future_delta=0,
+                 given_mask=None):
         '''
         sims should be train_sims, val_sims, or test_sims
 
@@ -445,6 +445,7 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
         self.channels = channels
         self.types = types
         self.future_delta = future_delta
+        self.given_mask = given_mask
 
 
         div = (points_per_side + 1)
@@ -496,23 +497,27 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
         z = torch.zeros_like(t_cur)
         sample = torch.zeros_like(t_cur)
 
-        # build a boolean mask of revealed pixels, shape (H,W)
-        mask = torch.zeros((self.H, self.W), dtype=torch.bool)
-        mask_sample = torch.zeros((self.H, self.W), dtype=torch.bool)
+        if self.given_mask is not None:
+            mask = self.given_mask.clone().bool()
+            mask_sample = self.given_mask.clone().bool()
+        else:
+            # build a boolean mask of revealed pixels, shape (H,W)
+            mask = torch.zeros((self.H, self.W), dtype=torch.bool)
+            mask_sample = torch.zeros((self.H, self.W), dtype=torch.bool)
 
-        show = np.random.choice(self.points_per_side**2,size=(self.points_per_side - 1)**2, replace=False)
+            show = np.random.choice(self.points_per_side**2,size=(self.points_per_side - 1)**2, replace=False)
 
-        yy, xx = torch.meshgrid(torch.arange(self.H), torch.arange(self.W), indexing="ij")
-        p = 0
-        for y0 in self.point_y:
-            for x0 in self.point_x:
-                wigglex = np.random.randint(self.wiggle * -1, self.wiggle+1)
-                wiggley = np.random.randint(self.wiggle * -1, self.wiggle+1)
-                disk = (yy - int(y0+wiggley))**2 + (xx - int(x0+wigglex))**2 <= (self.radius**2)
-                mask |= disk
-                if p in show:
-                    mask_sample |= disk
-                p += 1
+            yy, xx = torch.meshgrid(torch.arange(self.H), torch.arange(self.W), indexing="ij")
+            p = 0
+            for y0 in self.point_y:
+                for x0 in self.point_x:
+                    wigglex = np.random.randint(self.wiggle * -1, self.wiggle+1)
+                    wiggley = np.random.randint(self.wiggle * -1, self.wiggle+1)
+                    disk = (yy - int(y0+wiggley))**2 + (xx - int(x0+wigglex))**2 <= (self.radius**2)
+                    mask |= disk
+                    if p in show:
+                        mask_sample |= disk
+                    p += 1
 
         mask = mask.unsqueeze(0)
         mask_sample = mask_sample.unsqueeze(0)
@@ -525,7 +530,7 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
         return sample,z,mask
     
     def __len__(self):
-        return self.sims.shape[0] * self.steps * len(self.types)
+        return self.sims.shape[0] * self.num_steps() * len(self.types)
 
 
 class RandomDenseDatasetLimited(torch.utils.data.Dataset):
