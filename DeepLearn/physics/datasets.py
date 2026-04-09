@@ -9,8 +9,8 @@ Adjust paths to your project specifications below.
 '''
 # Folders
 
-BINARY_FOLDER = "../Data200x200_withinfo_Deterministic"
-UNIFORM_FOLDER = "../Uniform200x200withInfo_Deterministic"
+BINARY_FOLDER = "../Data200x200_withinfo_DeterministicPng/Data200x200_withinfo_Deterministic"
+UNIFORM_FOLDER = "../Uniform200x200withInfo_Deterministic/Uniform200x200withInfo_Deterministic"
 
 def get_all(sim, step, folder):
     path = f"{folder}/Sim-{sim}-Step-{step}.png"
