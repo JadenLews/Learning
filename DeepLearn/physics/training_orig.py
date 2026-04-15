@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader,Dataset
 from torch.optim import Optimizer
-import datasets
-import unet
+import datasets_orig
+import unet_orig
 from tqdm import tqdm
 
 # Darcy loss function
