@@ -12,6 +12,9 @@ Adjust paths to your project specifications below.
 BINARY_FOLDER = "../Data200x200_withinfo_DeterministicPng/Data200x200_withinfo_Deterministic"
 UNIFORM_FOLDER = "../Uniform200x200withInfo_Deterministic/Uniform200x200withInfo_Deterministic"
 
+BINARY_FOLDER = "../Data200x200_withinfo_DeterministicPng"
+UNIFORM_FOLDER = "../Uniform200x200withInfo_Deterministic"
+
 def get_all(sim, step, folder):
     path = f"{folder}/Sim-{sim}-Step-{step}.png"
     img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
@@ -412,7 +415,8 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
                  W=200,
                  channels="all",
                  future_delta=0,
-                 given_mask=None):
+                 given_mask=None,
+                 return_full_label=False):
         '''
         sims should be train_sims, val_sims, or test_sims
 
@@ -446,6 +450,7 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
         self.types = types
         self.future_delta = future_delta
         self.given_mask = given_mask
+        self.return_full_label = return_full_label
 
 
         div = (points_per_side + 1)
@@ -527,7 +532,10 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
         z[chans, :, :] = torch.where(mask, t_label[chans, :, :], torch.zeros_like(t_label[chans, :, :]))
         sample[chans, :, :] = torch.where(mask_sample, t_cur[chans, :, :], torch.zeros_like(t_cur[chans, :, :]))
 
-        return sample,z,mask
+        if self.return_full_label:
+            return sample, t_label, mask
+        else:
+            return sample, z, mask
     
     def __len__(self):
         return self.sims.shape[0] * self.num_steps() * len(self.types)
