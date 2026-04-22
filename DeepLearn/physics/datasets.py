@@ -1,40 +1,37 @@
 import numpy as np
 import torch
 import cv2
-from scipy.io import loadmat
 
 '''
 This file assumes a certain file structure.
 Adjust paths to your project specifications below.
 '''
 # Folders
+BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/"
+#BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
+UNIFORM_FOLDER = "../Uniform200x200withInfo/Uniform200x200withInfo/"
+BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/"
+#BINARY_FOLDER = "./Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
 
-BINARY_FOLDER = "../Data200x200_withinfo_DeterministicPng/Data200x200_withinfo_Deterministic"
-UNIFORM_FOLDER = "../Uniform200x200withInfo_Deterministic/Uniform200x200withInfo_Deterministic"
 
-BINARY_FOLDER = "../Data200x200_withinfo_DeterministicPng"
-UNIFORM_FOLDER = "../Uniform200x200withInfo_Deterministic"
+# Get porosity phi
+def get_phi(sim,step,folder):
+    return (cv2.imread(f"{folder}/Sim-{sim}-Step-{step}.png").transpose(2,0,1).astype(np.float32)[2] - 128) / 128
 
-def get_all(sim, step, folder):
-    path = f"{folder}/Sim-{sim}-Step-{step}.png"
-    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+# Get pressure
+def get_pres(sim,step,folder):
+    return (cv2.imread(f"{folder}/Sim-{sim}-Step-{step}.png").transpose(2,0,1).astype(np.float32)[1] - 128) / 128
 
-    if img is None:
-        raise FileNotFoundError(path)
+# Get conductivity K
+def get_k(sim,step,folder):
+    return (cv2.imread(f"{folder}/Sim-{sim}-Step-{step}.png").transpose(2,0,1).astype(np.float32)[0] - 128) / 128
 
-    # convert to float32
-    img = img.astype(np.float32)
+# Get all 3 as a 3-channel matrix
+def get_all(sim,step,folder):
+    return (cv2.imread(f"{folder}/Sim-{sim}-Step-{step}.png").transpose(2,0,1).astype(np.float32) - 128) / 128
 
-    # normalize from [0,255] → [-1,1]
-    img = img / 255.0           # [0,1]
-    img = img * 2.0 - 1.0       # [-1,1]
-
-    # OpenCV loads as BGR
-    K   = img[:, :, 0]  # blue
-    P   = img[:, :, 1]  # green
-    phi = img[:, :, 2]  # red
-
-    return np.array((K, P, phi), dtype=np.float32)
+def get_vel(sim,step,folder):
+    return (cv2.imread(f"{folder}/Sim-{sim}-Step-{step}_Vxy.png").transpose(2,0,1).astype(np.float32) - 128) / 128
 
 '''
 Actual Datasets below
@@ -59,8 +56,7 @@ class FixedDenseDatasetFull(torch.utils.data.Dataset):
                  types=[0],
                  H=200,
                  W=200,
-                 channels="all",
-                 future_delta=0):
+                 channels="all"):
         '''
         sims should be train_sims, val_sims, or test_sims
 
@@ -87,8 +83,6 @@ class FixedDenseDatasetFull(torch.utils.data.Dataset):
         self.H, self.W = H, W
         self.channels = channels
         self.types = types
-        self.future_delta = future_delta
-
 
         div = (points_per_side + 1)
 
@@ -98,6 +92,8 @@ class FixedDenseDatasetFull(torch.utils.data.Dataset):
     def _chan_idx(self):
         if self.channels == "all":
             return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
         elif self.channels == "K":
             return [0]
         elif self.channels == "P":
@@ -126,17 +122,11 @@ class FixedDenseDatasetFull(torch.utils.data.Dataset):
         sim_idx = (index // self.num_steps()) % self.n_sims
         sim_step = (index % self.num_steps()) + self.steps[0]
 
-        # keep step+delta inside the window
-        max_step = (self.steps[1] - 1) - self.future_delta
-        if sim_step > max_step:
-            sim_step = max_step
-
-        # create tensor for the target
-        t_cur   = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
-        t_label = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1 + self.future_delta, folder))
+        # Create tensor for the target
+        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
 
         # Create 0-matrix
-        z = torch.zeros_like(t_cur)
+        z = torch.zeros_like(t)
 
         # build a boolean mask of revealed pixels, shape (H,W)
         mask = torch.zeros((self.H, self.W), dtype=torch.bool)
@@ -149,129 +139,12 @@ class FixedDenseDatasetFull(torch.utils.data.Dataset):
 
         # write revealed pixels for selected channels
         chans = self._chan_idx()
-        z[chans, :, :] = torch.where(mask, t_cur[chans, :, :], torch.zeros_like(t_cur[chans, :, :]))
+        z[chans, :, :] = torch.where(mask, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
 
-        return z,t_label
-    
+        return z,t
+
     def __len__(self):
-        return self.sims.shape[0] * self.steps * len(self.types)
-    
-
-
-class FixedDenseDatasetFullDelta(torch.utils.data.Dataset):
-    '''
-    FixedDenseDatasetFull - 
-    Always use this when testing
-    
-    Comprehensive dataset\n
-    Dense means it iterates through all possible training samples in each epoch\n
-    Full means the target is the full image\n
-    Fixed means sensor points do not change
-    '''
-
-    def __init__(self,
-                 sims,
-                 points_per_side = 3,
-                 radius = 5,
-                 steps = (0,200),
-                 types=[0],
-                 H=200,
-                 W=200,
-                 channels="all",
-                 future_delta=0):
-        '''
-        sims should be train_sims, val_sims, or test_sims
-
-        points_per_side are equally spaced, an there will be n^2 many points
-
-        radius is the size of sensor points
-
-        steps is the number of steps (low,high) to use
-
-        types should be a list either [0],[1],[0,1]. 0 indicates binary, 1 indicates uniform.
-
-        H=200, the height of simulation space.
-        
-        W=200, the width of simulation space.
-
-        channels must be 'all', 'K', 'P', or 'phi' and refers to which parts of data will be used.
-        '''
-        
-        self.sims = sims
-        self.n_sims = sims.shape[0]
-        self.points_per_side = points_per_side
-        self.steps = steps
-        self.radius = radius
-        self.H, self.W = H, W
-        self.channels = channels
-        self.types = types
-        self.future_delta = future_delta
-
-        div = (points_per_side + 1)
-
-        self.point_x = np.arange(W // div, W, W // div)
-        self.point_y = np.arange(H // div, H, H // div)
-
-    def _chan_idx(self):
-        if self.channels == "all":
-            return [0,1,2]
-        elif self.channels == "K":
-            return [0]
-        elif self.channels == "P":
-            return [1]
-        elif self.channels == "phi":
-            return [2]
-        else:
-            raise ValueError("channels must be 'all', 'K', 'P', or 'phi'")
-        
-    def num_steps(self):
-        return self.steps[1] - self.steps[0]
-
-    def __getitem__(self, index):
-
-        if index >= self.sims.shape[0] * self.num_steps():
-            index = index - self.sims.shape[0] * self.num_steps()
-            kind = self.types[1]
-        else:
-            kind = self.types[0]
-
-        if kind == 0:
-            folder = BINARY_FOLDER
-        else:
-            folder = UNIFORM_FOLDER
-
-        sim_idx = (index // self.num_steps()) % self.n_sims
-        sim_step = (index % self.num_steps()) + self.steps[0]
-
-        # keep step+delta inside the window
-        max_step = (self.steps[1] - 1) - self.future_delta
-        if sim_step > max_step:
-            sim_step = max_step
-
-        # create tensor for the target
-        t_cur   = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
-        t_label = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1 + self.future_delta, folder))
-
-        # Create 0-matrix
-        z = torch.zeros_like(t_cur)
-
-        # build a boolean mask of revealed pixels, shape (H,W)
-        mask = torch.zeros((self.H, self.W), dtype=torch.bool)
-
-        yy, xx = torch.meshgrid(torch.arange(self.H), torch.arange(self.W), indexing="ij")
-        for y0 in self.point_y:
-            for x0 in self.point_x:
-                disk = (yy - int(y0))**2 + (xx - int(x0))**2 <= (self.radius**2)
-                mask |= disk
-
-        # write revealed pixels for selected channels
-        chans = self._chan_idx()
-        z[chans, :, :] = torch.where(mask, t_cur[chans, :, :], torch.zeros_like(t_cur[chans, :, :]))
-
-        return z,t_label
-    
-    def __len__(self):
-        return self.sims.shape[0] * self.steps * len(self.types)
+        return self.sims.shape[0] * self.num_steps() * len(self.types)
     
 
 
@@ -294,8 +167,7 @@ class FixedThinDatasetFull(torch.utils.data.Dataset):
                  types=[0],
                  H=200,
                  W=200,
-                 channels="all",
-                 future_delta=0):
+                 channels="all"):
         '''
         sims should be train_sims, val_sims, or test_sims
 
@@ -322,7 +194,6 @@ class FixedThinDatasetFull(torch.utils.data.Dataset):
         self.H, self.W = H, W
         self.channels = channels
         self.types = types
-        self.future_delta = future_delta
 
         div = (points_per_side + 1)
 
@@ -332,6 +203,8 @@ class FixedThinDatasetFull(torch.utils.data.Dataset):
     def _chan_idx(self):
         if self.channels == "all":
             return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
         elif self.channels == "K":
             return [0]
         elif self.channels == "P":
@@ -360,17 +233,11 @@ class FixedThinDatasetFull(torch.utils.data.Dataset):
         sim_idx = index
         sim_step = np.random.randint(self.steps[0], self.steps[1]+1)
 
-        # keep step+delta inside the window
-        max_step = (self.steps[1] - 1) - self.future_delta
-        if sim_step > max_step:
-            sim_step = max_step
-
-        # create tensor for the target
-        t_cur   = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
-        t_label = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1 + self.future_delta, folder))
+        # Create tensor for the target
+        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
 
         # Create 0-matrix
-        z = torch.zeros_like(t_cur)
+        z = torch.zeros_like(t)
 
         # build a boolean mask of revealed pixels, shape (H,W)
         mask = torch.zeros((self.H, self.W), dtype=torch.bool)
@@ -383,9 +250,9 @@ class FixedThinDatasetFull(torch.utils.data.Dataset):
 
         # write revealed pixels for selected channels
         chans = self._chan_idx()
-        z[chans, :, :] = torch.where(mask, t_cur[chans, :, :], torch.zeros_like(t_cur[chans, :, :]))
+        z[chans, :, :] = torch.where(mask, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
 
-        return z,t_label
+        return z,t
     
     def __len__(self):
         return self.sims.shape[0] * len(self.types)
@@ -413,10 +280,7 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
                  wiggle=0,
                  H=200,
                  W=200,
-                 channels="all",
-                 future_delta=0,
-                 given_mask=None,
-                 return_full_label=False):
+                 channels="all"):
         '''
         sims should be train_sims, val_sims, or test_sims
 
@@ -438,7 +302,6 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
 
         channels must be 'all', 'K', 'P', or 'phi' and refers to which parts of data will be used.
         '''
-        
         self.sims = sims
         self.n_sims = sims.shape[0]
         self.points_per_side = points_per_side
@@ -448,10 +311,6 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
         self.wiggle = wiggle
         self.channels = channels
         self.types = types
-        self.future_delta = future_delta
-        self.given_mask = given_mask
-        self.return_full_label = return_full_label
-
 
         div = (points_per_side + 1)
 
@@ -461,6 +320,8 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
     def _chan_idx(self):
         if self.channels == "all":
             return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
         elif self.channels == "K":
             return [0]
         elif self.channels == "P":
@@ -489,57 +350,175 @@ class FixedDenseDatasetLimited(torch.utils.data.Dataset):
         sim_idx = (index // self.num_steps()) % self.n_sims
         sim_step = (index % self.num_steps()) + self.steps[0]
 
-        # keep step+delta inside the window
-        max_step = (self.steps[1] - 1) - self.future_delta
-        if sim_step > max_step:
-            sim_step = max_step
-
-        # create tensor for the target
-        t_cur   = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
-        t_label = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1 + self.future_delta, folder))
+        # Create tensor for the target
+        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
 
         # Create 0-matrix
-        z = torch.zeros_like(t_cur)
-        sample = torch.zeros_like(t_cur)
+        z = torch.zeros_like(t)
+        sample = torch.zeros_like(t)
 
-        if self.given_mask is not None:
-            mask = self.given_mask.clone().bool()
-            mask_sample = self.given_mask.clone().bool()
-        else:
-            # build a boolean mask of revealed pixels, shape (H,W)
-            mask = torch.zeros((self.H, self.W), dtype=torch.bool)
-            mask_sample = torch.zeros((self.H, self.W), dtype=torch.bool)
+        # build a boolean mask of revealed pixels, shape (H,W)
+        mask = torch.zeros((self.H, self.W), dtype=torch.bool)
+        mask_sample = torch.zeros((self.H, self.W), dtype=torch.bool)
 
-            show = np.random.choice(self.points_per_side**2,size=(self.points_per_side - 1)**2, replace=False)
+        show = np.random.choice(self.points_per_side**2,size=(self.points_per_side - 1)**2, replace=False)
 
-            yy, xx = torch.meshgrid(torch.arange(self.H), torch.arange(self.W), indexing="ij")
-            p = 0
-            for y0 in self.point_y:
-                for x0 in self.point_x:
-                    wigglex = np.random.randint(self.wiggle * -1, self.wiggle+1)
-                    wiggley = np.random.randint(self.wiggle * -1, self.wiggle+1)
-                    disk = (yy - int(y0+wiggley))**2 + (xx - int(x0+wigglex))**2 <= (self.radius**2)
+        yy, xx = torch.meshgrid(torch.arange(self.H), torch.arange(self.W), indexing="ij")
+        p = 0
+        for y0 in self.point_y:
+            for x0 in self.point_x:
+                wigglex = np.random.randint(self.wiggle * -1, self.wiggle+1)
+                wiggley = np.random.randint(self.wiggle * -1, self.wiggle+1)
+                disk = (yy - int(y0+wiggley))**2 + (xx - int(x0+wigglex))**2 <= (self.radius**2)
+                if p in show:
+                    mask_sample |= disk
+                else:
                     mask |= disk
-                    if p in show:
-                        mask_sample |= disk
-                    p += 1
+                p += 1
 
         mask = mask.unsqueeze(0)
         mask_sample = mask_sample.unsqueeze(0)
 
         # write revealed pixels for selected channels
         chans = self._chan_idx()
-        z[chans, :, :] = torch.where(mask, t_label[chans, :, :], torch.zeros_like(t_label[chans, :, :]))
-        sample[chans, :, :] = torch.where(mask_sample, t_cur[chans, :, :], torch.zeros_like(t_cur[chans, :, :]))
+        z[chans, :, :] = torch.where(mask, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
+        sample[chans, :, :] = torch.where(mask_sample, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
 
-        if self.return_full_label:
-            return sample, t_label, mask
-        else:
-            return sample, z, mask
+        return sample,z,mask
     
     def __len__(self):
         return self.sims.shape[0] * self.num_steps() * len(self.types)
 
+class FixedThinDatasetLimited(torch.utils.data.Dataset):
+    '''
+    FixedDenseDatasetLimited - 
+    Randomness makes this unsuited to testing
+
+    At each step it reveals a random assortment of the available points.
+    
+    Thin dataset\n
+    Thin means it iterates through samples, but selects a random step instead of training on all steps\n
+    Limited means a mask is returned so that training only takes place over the given points\n
+    Fixed means sensor points do not change
+    '''
+
+    def __init__(self,
+                 sims,
+                 points_per_side = 3,
+                 radius = 5,
+                 steps = (0,200),
+                 types=[0],
+                 wiggle=0,
+                 H=200,
+                 W=200,
+                 channels="all"):
+        '''
+        sims should be train_sims, val_sims, or test_sims
+
+        Instead of each element being (features,target) it will be (features,target,mask)
+
+        points_per_side are equally spaced, an there will be n^2 many points
+
+        radius is the size of sensor points
+
+        steps is the number of steps (low,high) to use
+
+        types should be a list either [0],[1],[0,1]. 0 indicates binary, 1 indicates uniform.
+
+        wiggle is the number of pixels each sensor point is shifted. Applies to each point independently
+
+        H=200, the height of simulation space.
+        
+        W=200, the width of simulation space.
+
+        channels must be 'all', 'K', 'P', or 'phi' and refers to which parts of data will be used.
+        '''
+        self.sims = sims
+        self.n_sims = sims.shape[0]
+        self.points_per_side = points_per_side
+        self.steps = steps
+        self.radius = radius
+        self.H, self.W = H, W
+        self.wiggle = wiggle
+        self.channels = channels
+        self.types = types
+
+        div = (points_per_side + 1)
+
+        self.point_x = np.arange(W // div, W, W // div)
+        self.point_y = np.arange(H // div, H, H // div)
+
+    def _chan_idx(self):
+        if self.channels == "all":
+            return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
+        elif self.channels == "K":
+            return [0]
+        elif self.channels == "P":
+            return [1]
+        elif self.channels == "phi":
+            return [2]
+        else:
+            raise ValueError("channels must be 'all', 'K', 'P', or 'phi'")
+        
+    def num_steps(self):
+        return self.steps[1] - self.steps[0]
+
+    def __getitem__(self, index):
+
+        if index >= self.sims.shape[0]:
+            index = index - self.sims.shape[0]
+            kind = self.types[1]
+        else:
+            kind = self.types[0]
+
+        if kind == 0:
+            folder = BINARY_FOLDER
+        else:
+            folder = UNIFORM_FOLDER
+
+        sim_idx = index
+        sim_step = np.random.randint(self.steps[0], self.steps[1])
+
+        # Create tensor for the target
+        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
+
+        # Create 0-matrix
+        z = torch.zeros_like(t)
+        sample = torch.zeros_like(t)
+
+        # build a boolean mask of revealed pixels, shape (H,W)
+        mask = torch.zeros((self.H, self.W), dtype=torch.bool)
+        mask_sample = torch.zeros((self.H, self.W), dtype=torch.bool)
+
+        show = np.random.choice(self.points_per_side**2,size=(self.points_per_side - 1)**2, replace=False)
+
+        yy, xx = torch.meshgrid(torch.arange(self.H), torch.arange(self.W), indexing="ij")
+        p = 0
+        for y0 in self.point_y:
+            for x0 in self.point_x:
+                wigglex = np.random.randint(self.wiggle * -1, self.wiggle+1)
+                wiggley = np.random.randint(self.wiggle * -1, self.wiggle+1)
+                disk = (yy - int(y0+wiggley))**2 + (xx - int(x0+wigglex))**2 <= (self.radius**2)
+                if p in show:
+                    mask_sample |= disk
+                else:
+                    mask |= disk
+                p += 1
+
+        mask = mask.unsqueeze(0)
+        mask_sample = mask_sample.unsqueeze(0)
+
+        # write revealed pixels for selected channels
+        chans = self._chan_idx()
+        z[chans, :, :] = torch.where(mask, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
+        sample[chans, :, :] = torch.where(mask_sample, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
+
+        return sample,z,mask
+    
+    def __len__(self):
+        return self.sims.shape[0] * len(self.types)
 
 class RandomDenseDatasetLimited(torch.utils.data.Dataset):
     '''
@@ -564,8 +543,7 @@ class RandomDenseDatasetLimited(torch.utils.data.Dataset):
                  span_y = (20,180),
                  H=200,
                  W=200,
-                 channels="all",
-                 future_delta=0):
+                 channels="all"):
         '''
         sims should be train_sims, val_sims, or test_sims
 
@@ -598,8 +576,6 @@ class RandomDenseDatasetLimited(torch.utils.data.Dataset):
         self.span_y = span_y
         self.channels = channels
         self.types = types
-        self.future_delta = future_delta
-
 
         div = (points_per_side + 1)
 
@@ -609,6 +585,8 @@ class RandomDenseDatasetLimited(torch.utils.data.Dataset):
     def _chan_idx(self):
         if self.channels == "all":
             return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
         elif self.channels == "K":
             return [0]
         elif self.channels == "P":
@@ -637,18 +615,12 @@ class RandomDenseDatasetLimited(torch.utils.data.Dataset):
         sim_idx = (index // self.num_steps()) % self.n_sims
         sim_step = (index % self.num_steps()) + self.steps[0]
 
-        # keep step+delta inside the window
-        max_step = (self.steps[1] - 1) - self.future_delta
-        if sim_step > max_step:
-            sim_step = max_step
-
-        # create tensor for the target
-        t_cur   = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
-        t_label = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1 + self.future_delta, folder))
+        # Create tensor for the target
+        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
 
         # Create 0-matrix
-        z = torch.zeros_like(t_cur)
-        sample = torch.zeros_like(t_cur)
+        z = torch.zeros_like(t)
+        sample = torch.zeros_like(t)
 
         # build a boolean mask of revealed pixels, shape (H,W)
         mask = torch.zeros((self.H, self.W), dtype=torch.bool)
@@ -673,10 +645,386 @@ class RandomDenseDatasetLimited(torch.utils.data.Dataset):
 
         # write revealed pixels for selected channels
         chans = self._chan_idx()
-        z[chans, :, :] = torch.where(mask, t_label[chans, :, :], torch.zeros_like(t_label[chans, :, :]))
-        sample[chans, :, :] = torch.where(mask_sample, t_cur[chans, :, :], torch.zeros_like(t_cur[chans, :, :]))
+        z[chans, :, :] = torch.where(mask, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
+        sample[chans, :, :] = torch.where(mask_sample, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
 
         return sample,z,mask
     
     def __len__(self):
-        return self.sims.shape[0] * self.steps * len(self.types)
+        return self.sims.shape[0] * self.num_steps() * len(self.types)
+    
+
+class BorderDenseDatasetLimited(torch.utils.data.Dataset):
+    '''
+    BorderDenseDatasetLimited - 
+
+    At each step it reveals Boundary Conditions
+    
+    Comprehensive dataset\n
+    Dense means it iterates through all possible training samples in each epoch\n
+    Limited means a mask is returned so that training only takes place over the given points\n
+    Fixed means sensor points do not change
+    '''
+
+    def __init__(self,
+                 sims,
+                 points_per_side = 3,
+                 radius = 5,
+                 steps = (0,200),
+                 types=[0],
+                 wiggle=0,
+                 H=200,
+                 W=200,
+                 channels="all"):
+        '''
+        sims should be train_sims, val_sims, or test_sims
+
+        Instead of each element being (features,target) it will be (features,target,mask)
+
+        points_per_side are equally spaced, an there will be n^2 many points
+
+        radius is the size of sensor points
+
+        steps is the number of steps (low,high) to use
+
+        types should be a list either [0],[1],[0,1]. 0 indicates binary, 1 indicates uniform.
+
+        wiggle is the number of pixels each sensor point is shifted. Applies to each point independently
+
+        H=200, the height of simulation space.
+        
+        W=200, the width of simulation space.
+
+        channels must be 'all', 'K', 'P', or 'phi' and refers to which parts of data will be used.
+        '''
+        self.sims = sims
+        self.n_sims = sims.shape[0]
+        self.points_per_side = points_per_side
+        self.steps = steps
+        self.radius = radius
+        self.H, self.W = H, W
+        self.wiggle = wiggle
+        self.channels = channels
+        self.types = types
+
+        div = (points_per_side + 1)
+
+        self.point_x = np.arange(W // div, W, W // div)
+        self.point_y = np.arange(H // div, H, H // div)
+
+    def _chan_idx(self):
+        if self.channels == "all":
+            return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
+        elif self.channels == "K":
+            return [0]
+        elif self.channels == "P":
+            return [1]
+        elif self.channels == "phi":
+            return [2]
+        else:
+            raise ValueError("channels must be 'all', 'K', 'P', or 'phi'")
+        
+    def num_steps(self):
+        return self.steps[1] - self.steps[0]
+
+    def __getitem__(self, index):
+
+        if index >= self.sims.shape[0] * self.num_steps():
+            index = index - self.sims.shape[0] * self.num_steps()
+            kind = self.types[1]
+        else:
+            kind = self.types[0]
+
+        if kind == 0:
+            folder = BINARY_FOLDER
+        else:
+            folder = UNIFORM_FOLDER
+
+        sim_idx = (index // self.num_steps()) % self.n_sims
+        sim_step = (index % self.num_steps()) + self.steps[0]
+
+        # Create tensor for the target
+        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
+
+        # Create 0-matrix
+        z = torch.zeros_like(t)
+        sample = torch.zeros_like(t)
+
+        # build a boolean mask of revealed pixels, shape (H,W)
+        mask = torch.zeros((self.H, self.W), dtype=torch.bool)
+        mask_sample = torch.zeros((self.H, self.W), dtype=torch.bool)
+
+        mask[0:5,:] = 1
+        mask[-5:,:] = 1
+        mask[10:15,:] = 1
+
+        mask[:,99:101] = 1
+        mask[:,185:190] = 1
+        mask[:,10:15] = 1
+
+        mask_sample[0:5,:] = 1
+        mask_sample[-5:,:] = 1
+
+        mask = mask.unsqueeze(0)
+        mask_sample = mask_sample.unsqueeze(0)
+
+        # write revealed pixels for selected channels
+        chans = self._chan_idx()
+        z[chans, :, :] = torch.where(mask, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
+        sample[chans, :, :] = torch.where(mask_sample, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
+
+        return sample,z,mask
+    
+    def __len__(self):
+        return self.sims.shape[0] * self.num_steps() * len(self.types)
+    
+
+class BorderThinDatasetLimited(torch.utils.data.Dataset):
+    '''
+    BorderThinDatasetLimited - 
+
+    At each step it reveals Boundary Conditions
+    
+    Comprehensive dataset\n
+    Dense means it iterates through all possible training samples in each epoch\n
+    Limited means a mask is returned so that training only takes place over the given points\n
+    Fixed means sensor points do not change
+    '''
+
+    def __init__(self,
+                 sims,
+                 points_per_side = 3,
+                 radius = 5,
+                 steps = (0,200),
+                 types=[0],
+                 wiggle=0,
+                 H=200,
+                 W=200,
+                 channels="all"):
+        '''
+        sims should be train_sims, val_sims, or test_sims
+
+        Instead of each element being (features,target) it will be (features,target,mask)
+
+        points_per_side are equally spaced, an there will be n^2 many points
+
+        radius is the size of sensor points
+
+        steps is the number of steps (low,high) to use
+
+        types should be a list either [0],[1],[0,1]. 0 indicates binary, 1 indicates uniform.
+
+        wiggle is the number of pixels each sensor point is shifted. Applies to each point independently
+
+        H=200, the height of simulation space.
+        
+        W=200, the width of simulation space.
+
+        channels must be 'all', 'K', 'P', or 'phi' and refers to which parts of data will be used.
+        '''
+        self.sims = sims
+        self.n_sims = sims.shape[0]
+        self.points_per_side = points_per_side
+        self.steps = steps
+        self.radius = radius
+        self.H, self.W = H, W
+        self.wiggle = wiggle
+        self.channels = channels
+        self.types = types
+
+        div = (points_per_side + 1)
+
+        self.point_x = np.arange(W // div, W, W // div)
+        self.point_y = np.arange(H // div, H, H // div)
+
+    def _chan_idx(self):
+        if self.channels == "all":
+            return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
+        elif self.channels == "K":
+            return [0]
+        elif self.channels == "P":
+            return [1]
+        elif self.channels == "phi":
+            return [2]
+        else:
+            raise ValueError("channels must be 'all', 'K', 'P', or 'phi'")
+        
+    def num_steps(self):
+        return self.steps[1] - self.steps[0]
+
+    def __getitem__(self, index):
+
+        if index >= self.sims.shape[0] * self.num_steps():
+            index = index - self.sims.shape[0] * self.num_steps()
+            kind = self.types[1]
+        else:
+            kind = self.types[0]
+
+        if kind == 0:
+            folder = BINARY_FOLDER
+        else:
+            folder = UNIFORM_FOLDER
+
+        sim_idx = (index // self.num_steps()) % self.n_sims
+        sim_step = np.random.randint(self.steps[0], self.steps[1])
+
+        # Create tensor for the target
+        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))[self._chan_idx()]
+
+        # Create 0-matrix
+        z = torch.zeros_like(t)
+        sample = torch.zeros_like(t)
+
+        # build a boolean mask of revealed pixels, shape (H,W)
+        mask = torch.zeros((self.H, self.W), dtype=torch.bool)
+        mask_sample = torch.zeros((self.H, self.W), dtype=torch.bool)
+
+        mask[0:5,:] = 1
+        mask[-5:,:] = 1
+        mask[10:15,:] = 1
+
+        mask[:,99:101] = 1
+        mask[:,185:190] = 1
+        mask[:,10:15] = 1
+
+        mask_sample[0:5,:] = 1
+        mask_sample[-5:,:] = 1
+
+        #mask_sample[:,185:190] = 1
+        #mask_sample[:,10:15] = 1
+
+
+        mask = mask.unsqueeze(0)
+        mask_sample = mask_sample.unsqueeze(0)
+
+        # write revealed pixels for selected channels
+        chans = self._chan_idx()
+        z[chans, :, :] = torch.where(mask, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
+        sample[chans, :, :] = torch.where(mask_sample, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
+
+        return sample,z,mask
+    
+    def __len__(self):
+        return self.sims.shape[0] * len(self.types)
+    
+class BorderDenseDatasetFull(torch.utils.data.Dataset):
+    '''
+    BorderDenseDatasetLimited - 
+
+    At each step it reveals Boundary Conditions
+    
+    Comprehensive dataset\n
+    Dense means it iterates through all possible training samples in each epoch\n
+    Limited means a mask is returned so that training only takes place over the given points\n
+    Fixed means sensor points do not change
+    '''
+
+    def __init__(self,
+                 sims,
+                 points_per_side = 3,
+                 radius = 5,
+                 steps = (0,200),
+                 types=[0],
+                 wiggle=0,
+                 H=200,
+                 W=200,
+                 channels="all"):
+        '''
+        sims should be train_sims, val_sims, or test_sims
+
+        Instead of each element being (features,target) it will be (features,target,mask)
+
+        points_per_side are equally spaced, an there will be n^2 many points
+
+        radius is the size of sensor points
+
+        steps is the number of steps (low,high) to use
+
+        types should be a list either [0],[1],[0,1]. 0 indicates binary, 1 indicates uniform.
+
+        wiggle is the number of pixels each sensor point is shifted. Applies to each point independently
+
+        H=200, the height of simulation space.
+        
+        W=200, the width of simulation space.
+
+        channels must be 'all', 'K', 'P', or 'phi' and refers to which parts of data will be used.
+        '''
+        self.sims = sims
+        self.n_sims = sims.shape[0]
+        self.points_per_side = points_per_side
+        self.steps = steps
+        self.radius = radius
+        self.H, self.W = H, W
+        self.wiggle = wiggle
+        self.channels = channels
+        self.types = types
+
+        div = (points_per_side + 1)
+
+        self.point_x = np.arange(W // div, W, W // div)
+        self.point_y = np.arange(H // div, H, H // div)
+
+    def _chan_idx(self):
+        if self.channels == "all":
+            return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
+        elif self.channels == "K":
+            return [0]
+        elif self.channels == "P":
+            return [1]
+        elif self.channels == "phi":
+            return [2]
+        else:
+            raise ValueError("channels must be 'all', 'K', 'P', or 'phi'")
+        
+    def num_steps(self):
+        return self.steps[1] - self.steps[0]
+
+    def __getitem__(self, index):
+
+        if index >= self.sims.shape[0] * self.num_steps():
+            index = index - self.sims.shape[0] * self.num_steps()
+            kind = self.types[1]
+        else:
+            kind = self.types[0]
+
+        if kind == 0:
+            folder = BINARY_FOLDER
+        else:
+            folder = UNIFORM_FOLDER
+
+        sim_idx = (index // self.num_steps()) % self.n_sims
+        sim_step = (index % self.num_steps()) + self.steps[0]
+
+        # Create tensor for the target
+        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
+
+        # Create 0-matrix
+        sample = torch.zeros_like(t)
+
+        # build a boolean mask of revealed pixels, shape (H,W)
+        mask = torch.zeros((self.H, self.W), dtype=torch.bool)
+
+        mask[0:5,:] = 1
+        mask[-5:,:] = 1
+
+        #mask[:,185:190] = 1
+        #mask[:,10:15] = 1
+
+
+        mask = mask.unsqueeze(0)
+
+        # write revealed pixels for selected channels
+        chans = self._chan_idx()
+        sample[chans, :, :] = torch.where(mask, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
+
+        return sample,t
+    
+    def __len__(self):
+        return self.sims.shape[0] * self.num_steps() * len(self.types)

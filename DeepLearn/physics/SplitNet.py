@@ -1,4 +1,4 @@
-from unet_orig import TwoConv, Downsample, SmallUp, SmallDown, Upsample, ImgAttn
+from unet import TwoConv, Downsample, SmallUp, SmallDown, Upsample, ImgAttn
 import torch
 from torch import nn
 from torch.nn import functional as F
