@@ -11,7 +11,7 @@ BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/"
 #BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
 UNIFORM_FOLDER = "../Uniform200x200withInfo/Uniform200x200withInfo/"
 BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/"
-BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
+#BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
 
 
 # Get porosity phi
@@ -1025,6 +1025,274 @@ class BorderDenseDatasetFull(torch.utils.data.Dataset):
         sample[chans, :, :] = torch.where(mask, t[chans, :, :], torch.zeros_like(t[chans, :, :]))
 
         return sample,t
+    
+    def __len__(self):
+        return self.sims.shape[0] * self.num_steps() * len(self.types)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+class BorderThinPressureGradientDatasetLimited(torch.utils.data.Dataset):
+
+    def __init__(self,
+                 sims,
+                 points_per_side = 3,
+                 radius = 5,
+                 steps = (0,200),
+                 types=[0],
+                 wiggle=0,
+                 H=200,
+                 W=200,
+                 channels="all",
+                 num_pressure_points=9):
+        
+        self.sims = sims
+        self.n_sims = sims.shape[0]
+        self.points_per_side = points_per_side
+        self.steps = steps
+        self.radius = radius
+        self.H, self.W = H, W
+        self.wiggle = wiggle
+        self.channels = channels
+        self.types = types
+        self.num_pressure_points = num_pressure_points
+
+        div = (points_per_side + 1)
+        self.point_x = np.arange(W // div, W, W // div)
+        self.point_y = np.arange(H // div, H, H // div)
+
+    def _chan_idx(self):
+        if self.channels == "all":
+            return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
+        elif self.channels == "K":
+            return [0]
+        elif self.channels == "P":
+            return [1]
+        elif self.channels == "phi":
+            return [2]
+        else:
+            raise ValueError("channels must be 'all', 'K', 'P', 'phi', or 'KP'")
+        
+    def num_steps(self):
+        return self.steps[1] - self.steps[0]
+
+    def add_pressure_gradient_points(self, mask, t):
+        # t should be full 3-channel tensor: K, P, phi
+        P = t[1].numpy()
+
+        dP_dy, dP_dx = np.gradient(P)
+        grad_mag = np.sqrt(dP_dx**2 + dP_dy**2)
+
+        # avoid choosing border pixels, since border is already revealed
+        grad_mag[:10, :] = 0
+        grad_mag[-10:, :] = 0
+        grad_mag[:, :10] = 0
+        grad_mag[:, -10:] = 0
+
+        flat_idx = np.argpartition(
+            grad_mag.flatten(),
+            -self.num_pressure_points
+        )[-self.num_pressure_points:]
+
+        ys, xs = np.unravel_index(flat_idx, grad_mag.shape)
+
+        yy, xx = torch.meshgrid(
+            torch.arange(self.H),
+            torch.arange(self.W),
+            indexing="ij"
+        )
+
+        for y0, x0 in zip(ys, xs):
+            disk = (yy - int(y0))**2 + (xx - int(x0))**2 <= self.radius**2
+            mask |= disk
+
+        return mask
+
+    def __getitem__(self, index):
+
+        if index >= self.sims.shape[0] * self.num_steps():
+            index = index - self.sims.shape[0] * self.num_steps()
+            kind = self.types[1]
+        else:
+            kind = self.types[0]
+
+        if kind == 0:
+            folder = BINARY_FOLDER
+        else:
+            folder = UNIFORM_FOLDER
+
+        sim_idx = (index // self.num_steps()) % self.n_sims
+        sim_step = np.random.randint(self.steps[0], self.steps[1])
+
+        # keep full t first because pressure is always channel 1
+        t_full = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
+
+        # then select channels for actual output
+        chans = self._chan_idx()
+        t = t_full[chans]
+
+        z = torch.zeros_like(t)
+        sample = torch.zeros_like(t)
+
+        mask = torch.zeros((self.H, self.W), dtype=torch.bool)
+        mask_sample = torch.zeros((self.H, self.W), dtype=torch.bool)
+
+        # same border code as before
+        mask[0:5,:] = 1
+        mask[-5:,:] = 1
+        mask[10:15,:] = 1
+
+        mask[:,99:101] = 1
+        mask[:,185:190] = 1
+        mask[:,10:15] = 1
+
+        mask_sample[0:5,:] = 1
+        mask_sample[-5:,:] = 1
+
+        # add dynamic pressure-gradient interior points
+        mask = self.add_pressure_gradient_points(mask, t_full)
+
+        mask = mask.unsqueeze(0)
+        mask_sample = mask_sample.unsqueeze(0)
+
+        # since t already has selected channels, use all selected output channels
+        z[:, :, :] = torch.where(mask, t, torch.zeros_like(t))
+        sample[:, :, :] = torch.where(mask_sample, t, torch.zeros_like(t))
+
+        return sample, z, mask
+    
+    def __len__(self):
+        return self.sims.shape[0] * len(self.types)
+    
+
+
+
+
+
+class BorderDensePressureGradientDatasetFull(torch.utils.data.Dataset):
+
+    def __init__(self,
+                 sims,
+                 points_per_side = 3,
+                 radius = 5,
+                 steps = (0,200),
+                 types=[0],
+                 wiggle=0,
+                 H=200,
+                 W=200,
+                 channels="all",
+                 num_pressure_points=9):
+        
+        self.sims = sims
+        self.n_sims = sims.shape[0]
+        self.points_per_side = points_per_side
+        self.steps = steps
+        self.radius = radius
+        self.H, self.W = H, W
+        self.wiggle = wiggle
+        self.channels = channels
+        self.types = types
+        self.num_pressure_points = num_pressure_points
+
+        div = (points_per_side + 1)
+        self.point_x = np.arange(W // div, W, W // div)
+        self.point_y = np.arange(H // div, H, H // div)
+
+    def _chan_idx(self):
+        if self.channels == "all":
+            return [0,1,2]
+        if self.channels == "KP":
+            return [0,1]
+        elif self.channels == "K":
+            return [0]
+        elif self.channels == "P":
+            return [1]
+        elif self.channels == "phi":
+            return [2]
+        else:
+            raise ValueError("channels must be 'all', 'K', 'P', 'phi', or 'KP'")
+        
+    def num_steps(self):
+        return self.steps[1] - self.steps[0]
+
+    def add_pressure_gradient_points(self, mask, t):
+        P = t[1].numpy()
+
+        dP_dy, dP_dx = np.gradient(P)
+        grad_mag = np.sqrt(dP_dx**2 + dP_dy**2)
+
+        grad_mag[:10, :] = 0
+        grad_mag[-10:, :] = 0
+        grad_mag[:, :10] = 0
+        grad_mag[:, -10:] = 0
+
+        flat_idx = np.argpartition(
+            grad_mag.flatten(),
+            -self.num_pressure_points
+        )[-self.num_pressure_points:]
+
+        ys, xs = np.unravel_index(flat_idx, grad_mag.shape)
+
+        yy, xx = torch.meshgrid(
+            torch.arange(self.H),
+            torch.arange(self.W),
+            indexing="ij"
+        )
+
+        for y0, x0 in zip(ys, xs):
+            disk = (yy - int(y0))**2 + (xx - int(x0))**2 <= self.radius**2
+            mask |= disk
+
+        return mask
+
+    def __getitem__(self, index):
+
+        if index >= self.sims.shape[0] * self.num_steps():
+            index = index - self.sims.shape[0] * self.num_steps()
+            kind = self.types[1]
+        else:
+            kind = self.types[0]
+
+        if kind == 0:
+            folder = BINARY_FOLDER
+        else:
+            folder = UNIFORM_FOLDER
+
+        sim_idx = (index // self.num_steps()) % self.n_sims
+        sim_step = (index % self.num_steps()) + self.steps[0]
+
+        t_full = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
+
+        chans = self._chan_idx()
+        t = t_full[chans]
+
+        sample = torch.zeros_like(t)
+
+        mask = torch.zeros((self.H, self.W), dtype=torch.bool)
+
+        # same border code as before
+        mask[0:5,:] = 1
+        mask[-5:,:] = 1
+
+        # add dynamic pressure-gradient interior points
+        mask = self.add_pressure_gradient_points(mask, t_full)
+
+        mask = mask.unsqueeze(0)
+
+        sample[:, :, :] = torch.where(mask, t, torch.zeros_like(t))
+
+        return sample, t
     
     def __len__(self):
         return self.sims.shape[0] * self.num_steps() * len(self.types)
