@@ -93,7 +93,23 @@ class UNet(nn.Module):
 
 
 
+# x = torch.randn(2, 3, 200, 200)
+# model = UNet(3, 3)
+# out = model(x)
+# print(out.shape)
+
+
+
 x = torch.randn(2, 3, 200, 200)
 model = UNet(3, 3)
-out = model(x)
-print(out.shape)
+
+down_1, p1 = model.down_convolution_1(x)
+down_2, p2 = model.down_convolution_2(p1)
+down_3, p3 = model.down_convolution_3(p2)
+down_4, p4 = model.down_convolution_4(p3)
+b = model.bottle_neck(p4)
+
+print("down_4:", down_4.shape)
+print("p4:", p4.shape)
+print("b:", b.shape)
+print("up b:", model.up_convolution_1.up(b).shape)

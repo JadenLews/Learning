@@ -1,0 +1,24 @@
+{
+  "model_path": "minimum_info/scale_tests/fixed/fixed_physics_limited_splitnet_attn_darcy_0p0_best_state.pt",
+  "model_type": "splitnet_attn",
+  "dataset_mode": "fixed",
+  "training_mode": "physics_limited",
+  "channels": "KP",
+  "test_sims_path": "../test_sims.npy",
+  "sim_max": 250,
+  "steps": [
+    0,
+    200
+  ],
+  "types": [
+    0
+  ],
+  "points_per_side": 3,
+  "radius": 5,
+  "batch_size": 1,
+  "eval_dir": "./results_eval",
+  "run_name": null,
+  "random_eval_as": "fixed",
+  "eval_mask_mode": "fixed",
+  "output_path": "./results_eval/eval_fixed_physics_limited_splitnet_attn_darcy_0p0.npz"
+}
