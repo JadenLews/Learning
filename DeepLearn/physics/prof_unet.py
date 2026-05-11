@@ -86,30 +86,64 @@ class UNet(nn.Module):
 
         out = self.out(up_4)
         return out
+    
 
+class ResizedUNet(nn.Module):
 
+    """
 
+    Professor-style U-Net, adapted for 200x200 data by resizing internally.
 
+    Input:
 
+        [B, C, 200, 200]
 
+    Internally:
 
-# x = torch.randn(2, 3, 200, 200)
-# model = UNet(3, 3)
-# out = model(x)
-# print(out.shape)
+        200x200 -> 256x256 -> U-Net -> 256x256 -> 200x200
 
+    Output:
 
+        [B, C, 200, 200]
 
-x = torch.randn(2, 3, 200, 200)
-model = UNet(3, 3)
+    """
 
-down_1, p1 = model.down_convolution_1(x)
-down_2, p2 = model.down_convolution_2(p1)
-down_3, p3 = model.down_convolution_3(p2)
-down_4, p4 = model.down_convolution_4(p3)
-b = model.bottle_neck(p4)
+    def __init__(self, in_channels=2, num_classes=2, size=256):
 
-print("down_4:", down_4.shape)
-print("p4:", p4.shape)
-print("b:", b.shape)
-print("up b:", model.up_convolution_1.up(b).shape)
+        super().__init__()
+
+        self.size = size
+
+        self.model = UNet(in_channels, num_classes)
+
+    def forward(self, x):
+
+        original_h, original_w = x.shape[-2:]
+
+        x = F.interpolate(
+
+            x,
+
+            size=(self.size, self.size),
+
+            mode="bilinear",
+
+            align_corners=False,
+
+        )
+
+        out = self.model(x)
+
+        out = F.interpolate(
+
+            out,
+
+            size=(original_h, original_w),
+
+            mode="bilinear",
+
+            align_corners=False,
+
+        )
+
+        return out
