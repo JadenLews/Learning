@@ -1,0 +1,80 @@
+{
+  "run_name": "fixed_splitnet_physics_limited_combo_small",
+  "model_type": "splitnet",
+  "dataset_mode": "fixed",
+  "training_mode": "physics_limited",
+  "channels": "KP",
+  "loss_config": {
+    "mse": {
+      "weight": 1.0,
+      "region": "mask"
+    },
+    "darcy_match": {
+      "weight": 0.1,
+      "region": "all"
+    },
+    "ssim_loss": {
+      "weight": 0.1,
+      "region": "all"
+    }
+  },
+  "epochs": 10,
+  "batch_size": 8,
+  "lr": 0.001,
+  "best_epoch": 8,
+  "best_val_score_used": 0.015752579481340945,
+  "best_train_loss_used": 0.01900834982706742,
+  "best_val_total_mse": 0.0015375737720751204,
+  "best_val_supervised_mse": 0.015752579481340945,
+  "best_val_mask_mse": 0.015752579481340945,
+  "best_val_nonmask_mse": 0.0011848378356080502,
+  "best_val_darcy": 3.1512808752864885e-06,
+  "best_val_darcy_match": 9.336030114809546e-05,
+  "best_val_ssim": 0.971063951253891,
+  "best_val_psnr": 34.46584831237793,
+  "best_val_high_grad_mse_k": 0.0015259559659170918,
+  "best_val_high_grad_mse_p": 0.0006705783418146893,
+  "final_train_loss_used": 0.01900834982706742,
+  "final_val_total_mse": 0.0015375737720751204,
+  "final_val_supervised_mse": 0.03602295746095478,
+  "final_val_mask_mse": 0.03602295746095478,
+  "final_val_nonmask_mse": 0.0011848378356080502,
+  "final_val_darcy": 5.6351171534174685e-05,
+  "final_val_darcy_match": 0.00010397722557627276,
+  "final_val_ssim": 0.9694783109426498,
+  "final_val_psnr": 34.46584831237793,
+  "final_val_high_grad_mse_k": 0.002404569263744634,
+  "final_val_high_grad_mse_p": 0.0006705783418146893,
+  "config": {
+    "model_type": "splitnet",
+    "dataset_mode": "fixed",
+    "training_mode": "physics_limited",
+    "loss_config": {
+      "mse": {
+        "weight": 1.0,
+        "region": "mask"
+      },
+      "darcy_match": {
+        "weight": 0.1,
+        "region": "all"
+      },
+      "ssim_loss": {
+        "weight": 0.1,
+        "region": "all"
+      }
+    },
+    "epochs": 10,
+    "batch_size": 8,
+    "lr": 0.001,
+    "channels": "KP",
+    "train_sims_path": "../train_sims.npy",
+    "val_sims_path": "../val_sims.npy",
+    "sim_max_exclusive": 30,
+    "save_dir": "calibration_loss_tests",
+    "run_name": "fixed_splitnet_physics_limited_combo_small",
+    "save_prefix": null,
+    "save_best": true,
+    "best_metric": null,
+    "dataset_kwargs": null
+  }
+}
