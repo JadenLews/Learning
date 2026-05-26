@@ -11,7 +11,7 @@ BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/"
 #BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
 UNIFORM_FOLDER = "../Uniform200x200withInfo/Uniform200x200withInfo/"
 BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/"
-#BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
+BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
 
 
 # Get porosity phi
