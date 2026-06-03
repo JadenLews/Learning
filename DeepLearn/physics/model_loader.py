@@ -14,6 +14,8 @@ from tqdm import tqdm
 import datasets
 import unet
 import unetFixed
+import prof_unet
+
 from SplitNet import SplitNet
 
 

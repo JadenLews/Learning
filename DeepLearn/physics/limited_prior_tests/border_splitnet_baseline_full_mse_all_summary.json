@@ -1,0 +1,64 @@
+{
+  "run_name": "border_splitnet_baseline_full_mse_all",
+  "model_type": "splitnet",
+  "dataset_mode": "border",
+  "training_mode": "baseline_full",
+  "channels": "KP",
+  "loss_config": {
+    "mse": {
+      "weight": 1.0,
+      "region": "all"
+    }
+  },
+  "epochs": 20,
+  "batch_size": 8,
+  "lr": 0.001,
+  "best_epoch": 4,
+  "best_val_score_used": 0.006749680010223035,
+  "best_train_loss_used": 0.0015723655695481546,
+  "best_val_total_mse": 0.006749680010223035,
+  "best_val_supervised_mse": 0.006749680010223035,
+  "best_val_mask_mse": null,
+  "best_val_nonmask_mse": null,
+  "best_val_darcy": 4.447664623974992e-06,
+  "best_val_darcy_match": 4.081675886913741e-06,
+  "best_val_ssim": 0.8812667283365282,
+  "best_val_psnr": 29.233536194623525,
+  "best_val_high_grad_mse_k": 0.04004418819535018,
+  "best_val_high_grad_mse_p": 0.00019412122548940607,
+  "final_train_loss_used": 0.0015723655695481546,
+  "final_val_total_mse": 0.00777763257418775,
+  "final_val_supervised_mse": 0.00777763257418775,
+  "final_val_mask_mse": null,
+  "final_val_nonmask_mse": null,
+  "final_val_darcy": 0.0013100109677130387,
+  "final_val_darcy_match": 4.081675886913741e-06,
+  "final_val_ssim": 0.881003707384659,
+  "final_val_psnr": 28.928955710459565,
+  "final_val_high_grad_mse_k": 0.04790694465623947,
+  "final_val_high_grad_mse_p": 0.00019412122548940607,
+  "config": {
+    "model_type": "splitnet",
+    "dataset_mode": "border",
+    "training_mode": "baseline_full",
+    "loss_config": {
+      "mse": {
+        "weight": 1.0,
+        "region": "all"
+      }
+    },
+    "epochs": 20,
+    "batch_size": 8,
+    "lr": 0.001,
+    "channels": "KP",
+    "train_sims_path": "../train_sims.npy",
+    "val_sims_path": "../val_sims.npy",
+    "sim_max_exclusive": 400,
+    "save_dir": "limited_prior_tests",
+    "run_name": "border_splitnet_baseline_full_mse_all",
+    "save_prefix": null,
+    "save_best": true,
+    "best_metric": null,
+    "dataset_kwargs": null
+  }
+}

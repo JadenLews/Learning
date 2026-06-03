@@ -1,0 +1,86 @@
+{
+  "run_name": "border_splitnet_physics_limited_mask_mse_darcy_lowKarea",
+  "model_type": "splitnet",
+  "dataset_mode": "border",
+  "training_mode": "physics_limited",
+  "channels": "KP",
+  "loss_config": {
+    "mse": {
+      "weight": 1.0,
+      "region": "mask"
+    },
+    "darcy": {
+      "weight": 5.0,
+      "region": "all"
+    },
+    "low_k_area": {
+      "weight": 0.1,
+      "region": "all",
+      "target_area": 0.08575309937308692,
+      "threshold": -0.5,
+      "channel": 0
+    }
+  },
+  "epochs": 20,
+  "batch_size": 8,
+  "lr": 0.001,
+  "best_epoch": 10,
+  "best_val_score_used": 0.00398523992353703,
+  "best_train_loss_used": 0.002495456073559316,
+  "best_val_total_mse": 0.2165524376650988,
+  "best_val_supervised_mse": 0.00398523992353703,
+  "best_val_mask_mse": 0.00398523992353703,
+  "best_val_nonmask_mse": 0.2480739526930502,
+  "best_val_darcy": 7.488018902654018e-05,
+  "best_val_darcy_match": 0.0012339647550735685,
+  "best_val_ssim": 0.15150178049580526,
+  "best_val_psnr": 12.693229353953216,
+  "best_val_high_grad_mse_k": 0.05338303743214425,
+  "best_val_high_grad_mse_p": 0.18958784586797325,
+  "final_train_loss_used": 0.002495456073559316,
+  "final_val_total_mse": 0.2215271859350851,
+  "final_val_supervised_mse": 0.004247515044033022,
+  "final_val_mask_mse": 0.004247515044033022,
+  "final_val_nonmask_mse": 0.25413788373187435,
+  "final_val_darcy": 9.351096340451169e-05,
+  "final_val_darcy_match": 0.0012845255640903646,
+  "final_val_ssim": 0.1404848059557252,
+  "final_val_psnr": 12.583644272755768,
+  "final_val_high_grad_mse_k": 0.0601870340544541,
+  "final_val_high_grad_mse_p": 0.19355277692867537,
+  "config": {
+    "model_type": "splitnet",
+    "dataset_mode": "border",
+    "training_mode": "physics_limited",
+    "loss_config": {
+      "mse": {
+        "weight": 1.0,
+        "region": "mask"
+      },
+      "darcy": {
+        "weight": 5.0,
+        "region": "all"
+      },
+      "low_k_area": {
+        "weight": 0.1,
+        "region": "all",
+        "target_area": 0.08575309937308692,
+        "threshold": -0.5,
+        "channel": 0
+      }
+    },
+    "epochs": 20,
+    "batch_size": 8,
+    "lr": 0.001,
+    "channels": "KP",
+    "train_sims_path": "../train_sims.npy",
+    "val_sims_path": "../val_sims.npy",
+    "sim_max_exclusive": 400,
+    "save_dir": "limited_prior_tests",
+    "run_name": "border_splitnet_physics_limited_mask_mse_darcy_lowKarea",
+    "save_prefix": null,
+    "save_best": true,
+    "best_metric": null,
+    "dataset_kwargs": null
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "channel_order": [
+    "K",
+    "P",
+    "phi"
+  ],
+  "channel_mean": [
+    -0.18784285351201244,
+    -0.6110295218298076,
+    -0.9120737134049216
+  ],
+  "channel_std": [
+    0.2515213950708161,
+    0.3208698303289577,
+    0.19905961457025312
+  ],
+  "low_k_threshold": -0.5,
+  "low_k_area_mean": 0.08575309937308692,
+  "low_k_area_std": 0.04581761097715663,
+  "num_sims": 307,
+  "num_steps": 199,
+  "folder": "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
+}

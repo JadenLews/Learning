@@ -1,0 +1,106 @@
+{
+  "run_name": "border_splitnet_physics_limited_mask_mse_darcy_tvP_stats",
+  "model_type": "splitnet",
+  "dataset_mode": "border",
+  "training_mode": "physics_limited",
+  "channels": "KP",
+  "loss_config": {
+    "mse": {
+      "weight": 1.0,
+      "region": "mask"
+    },
+    "darcy": {
+      "weight": 5.0,
+      "region": "all"
+    },
+    "tv": {
+      "weight": 0.01,
+      "region": "all",
+      "channel": 1
+    },
+    "channel_stats": {
+      "weight": 0.1,
+      "region": "all",
+      "channel_mean": [
+        -0.18784285351201244,
+        -0.6110295218298076
+      ],
+      "channel_std": [
+        0.2515213950708161,
+        0.3208698303289577
+      ]
+    }
+  },
+  "epochs": 20,
+  "batch_size": 8,
+  "lr": 0.001,
+  "best_epoch": 3,
+  "best_val_score_used": 0.0036721956688847584,
+  "best_train_loss_used": 0.002558293709924734,
+  "best_val_total_mse": 0.24753553183402044,
+  "best_val_supervised_mse": 0.0036721956688847584,
+  "best_val_mask_mse": 0.0036721956688847584,
+  "best_val_nonmask_mse": 0.284077829890332,
+  "best_val_darcy": 7.267949473254887e-05,
+  "best_val_darcy_match": 0.0012498036407770873,
+  "best_val_ssim": 0.12179894811016018,
+  "best_val_psnr": 12.165897172830872,
+  "best_val_high_grad_mse_k": 0.05952096934319805,
+  "best_val_high_grad_mse_p": 0.20184204023773386,
+  "final_train_loss_used": 0.002558293709924734,
+  "final_val_total_mse": 0.2485818487910901,
+  "final_val_supervised_mse": 0.004144021768628036,
+  "final_val_mask_mse": 0.004144021768628036,
+  "final_val_nonmask_mse": 0.28526861487808874,
+  "final_val_darcy": 9.366774936976163e-05,
+  "final_val_darcy_match": 0.0012833395738044153,
+  "final_val_ssim": 0.12016730179220943,
+  "final_val_psnr": 12.144035360045352,
+  "final_val_high_grad_mse_k": 0.0645413198849281,
+  "final_val_high_grad_mse_p": 0.20355331847223185,
+  "config": {
+    "model_type": "splitnet",
+    "dataset_mode": "border",
+    "training_mode": "physics_limited",
+    "loss_config": {
+      "mse": {
+        "weight": 1.0,
+        "region": "mask"
+      },
+      "darcy": {
+        "weight": 5.0,
+        "region": "all"
+      },
+      "tv": {
+        "weight": 0.01,
+        "region": "all",
+        "channel": 1
+      },
+      "channel_stats": {
+        "weight": 0.1,
+        "region": "all",
+        "channel_mean": [
+          -0.18784285351201244,
+          -0.6110295218298076
+        ],
+        "channel_std": [
+          0.2515213950708161,
+          0.3208698303289577
+        ]
+      }
+    },
+    "epochs": 20,
+    "batch_size": 8,
+    "lr": 0.001,
+    "channels": "KP",
+    "train_sims_path": "../train_sims.npy",
+    "val_sims_path": "../val_sims.npy",
+    "sim_max_exclusive": 400,
+    "save_dir": "limited_prior_tests",
+    "run_name": "border_splitnet_physics_limited_mask_mse_darcy_tvP_stats",
+    "save_prefix": null,
+    "save_best": true,
+    "best_metric": null,
+    "dataset_kwargs": null
+  }
+}

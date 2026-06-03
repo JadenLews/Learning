@@ -1,0 +1,72 @@
+{
+  "run_name": "border_splitnet_attn_physics_limited_mse_mask_darcy_5p0",
+  "model_type": "splitnet_attn",
+  "dataset_mode": "border",
+  "training_mode": "physics_limited",
+  "channels": "KP",
+  "loss_config": {
+    "mse": {
+      "weight": 1.0,
+      "region": "mask"
+    },
+    "darcy": {
+      "weight": 5.0,
+      "region": "all"
+    }
+  },
+  "epochs": 20,
+  "batch_size": 8,
+  "lr": 0.001,
+  "best_epoch": 5,
+  "best_val_score_used": 0.004740403973481665,
+  "best_train_loss_used": 0.0029987190907219967,
+  "best_val_total_mse": 0.3103045459521019,
+  "best_val_supervised_mse": 0.004740403973481665,
+  "best_val_mask_mse": 0.004740403973481665,
+  "best_val_nonmask_mse": 0.3561149243985192,
+  "best_val_darcy": 6.0354885368970994e-05,
+  "best_val_darcy_match": 0.0012698740492795863,
+  "best_val_ssim": 0.10576283886776132,
+  "best_val_psnr": 11.113261760129767,
+  "best_val_high_grad_mse_k": 0.06071152760063188,
+  "best_val_high_grad_mse_p": 0.20237396932254403,
+  "final_train_loss_used": 0.0029987190907219967,
+  "final_val_total_mse": 0.31236425302796444,
+  "final_val_supervised_mse": 0.005073474745060933,
+  "final_val_mask_mse": 0.005073474745060933,
+  "final_val_nonmask_mse": 0.3584843833971832,
+  "final_val_darcy": 9.067884716895898e-05,
+  "final_val_darcy_match": 0.001289786115896462,
+  "final_val_ssim": 0.10576283886776132,
+  "final_val_psnr": 11.085656764143604,
+  "final_val_high_grad_mse_k": 0.0656723497858492,
+  "final_val_high_grad_mse_p": 0.20533238713013924,
+  "config": {
+    "model_type": "splitnet_attn",
+    "dataset_mode": "border",
+    "training_mode": "physics_limited",
+    "loss_config": {
+      "mse": {
+        "weight": 1.0,
+        "region": "mask"
+      },
+      "darcy": {
+        "weight": 5.0,
+        "region": "all"
+      }
+    },
+    "epochs": 20,
+    "batch_size": 8,
+    "lr": 0.001,
+    "channels": "KP",
+    "train_sims_path": "../train_sims.npy",
+    "val_sims_path": "../val_sims.npy",
+    "sim_max_exclusive": 400,
+    "save_dir": "limited_prior_tests",
+    "run_name": "border_splitnet_attn_physics_limited_mse_mask_darcy_5p0",
+    "save_prefix": null,
+    "save_best": true,
+    "best_metric": null,
+    "dataset_kwargs": null
+  }
+}
