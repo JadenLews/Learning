@@ -8,11 +8,8 @@ Adjust paths to your project specifications below.
 '''
 # Folders
 BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/"
-#BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
-UNIFORM_FOLDER = "../Uniform200x200withInfo/Uniform200x200withInfo/"
+UNIFORM_FOLDER = "../Uniform200x200withInfo/"
 BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/"
-#BINARY_FOLDER = "../Data200x200_withInfo_Deterministic/Data200x200_withInfo_Deterministic/"
-
 
 # Get porosity phi
 def get_phi(sim,step,folder):
@@ -894,9 +891,6 @@ class BorderThinDatasetLimited(torch.utils.data.Dataset):
         mask_sample[0:5,:] = 1
         mask_sample[-5:,:] = 1
 
-        #mask_sample[:,185:190] = 1
-        #mask_sample[:,10:15] = 1
-
 
         mask = mask.unsqueeze(0)
         mask_sample = mask_sample.unsqueeze(0)
@@ -1003,7 +997,7 @@ class BorderDenseDatasetFull(torch.utils.data.Dataset):
         sim_step = (index % self.num_steps()) + self.steps[0]
 
         # Create tensor for the target
-        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))
+        t = torch.tensor(get_all(self.sims[sim_idx], sim_step + 1, folder))[self._chan_idx()]
 
         # Create 0-matrix
         sample = torch.zeros_like(t)
@@ -1013,10 +1007,6 @@ class BorderDenseDatasetFull(torch.utils.data.Dataset):
 
         mask[0:5,:] = 1
         mask[-5:,:] = 1
-
-        #mask[:,185:190] = 1
-        #mask[:,10:15] = 1
-
 
         mask = mask.unsqueeze(0)
 
@@ -1028,8 +1018,6 @@ class BorderDenseDatasetFull(torch.utils.data.Dataset):
     
     def __len__(self):
         return self.sims.shape[0] * self.num_steps() * len(self.types)
-    
-
 
 class BorderDenseDatasetLimitedSides(torch.utils.data.Dataset):
     '''
