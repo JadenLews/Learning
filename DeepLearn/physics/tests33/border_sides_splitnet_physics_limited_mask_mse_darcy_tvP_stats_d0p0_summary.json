@@ -1,0 +1,74 @@
+{
+  "run_name": "border_sides_splitnet_physics_limited_mask_mse_darcy_tvP_stats_d0p0",
+  "model_type": "splitnet",
+  "dataset_mode": "border_sides",
+  "training_mode": "physics_limited",
+  "channels": "KP",
+  "loss_config": {
+    "mse": {
+      "weight": 1.0,
+      "region": "mask"
+    },
+    "darcy": {
+      "weight": 0.0,
+      "region": "all"
+    }
+  },
+  "epochs": 10,
+  "batch_size": 8,
+  "lr": 0.001,
+  "best_epoch": 9,
+  "best_val_score_used": 0.002841701721417386,
+  "best_train_loss_used": 0.0009896479634404836,
+  "best_val_total_mse": 0.339515519647275,
+  "best_val_supervised_mse": 0.002841701721417386,
+  "best_val_mask_mse": 0.002841701721417386,
+  "best_val_nonmask_mse": 0.38959124609575435,
+  "best_val_darcy": 0.0028157626348942265,
+  "best_val_darcy_match": 0.002085344687269969,
+  "best_val_ssim": 0.10169094514038603,
+  "best_val_psnr": 10.713069946806309,
+  "best_val_high_grad_mse_k": 0.06570366168615677,
+  "best_val_high_grad_mse_p": 0.1484542338322785,
+  "final_train_loss_used": 0.0009896479634404836,
+  "final_val_total_mse": 0.5497611475394945,
+  "final_val_supervised_mse": 0.004962213001553348,
+  "final_val_mask_mse": 0.004962213001553348,
+  "final_val_nonmask_mse": 0.631527994608475,
+  "final_val_darcy": 0.005089496067425205,
+  "final_val_darcy_match": 0.004177740712539625,
+  "final_val_ssim": 0.08295717958676613,
+  "final_val_psnr": 8.62251041670977,
+  "final_val_high_grad_mse_k": 0.07051098459858006,
+  "final_val_high_grad_mse_p": 0.17993263902300496,
+  "config": {
+    "model_type": "splitnet",
+    "dataset_mode": "border_sides",
+    "training_mode": "physics_limited",
+    "loss_config": {
+      "mse": {
+        "weight": 1.0,
+        "region": "mask"
+      },
+      "darcy": {
+        "weight": 0.0,
+        "region": "all"
+      }
+    },
+    "epochs": 10,
+    "batch_size": 8,
+    "lr": 0.001,
+    "channels": "KP",
+    "train_sims_path": "../train_sims.npy",
+    "val_sims_path": "../val_sims.npy",
+    "sim_max_exclusive": 400,
+    "save_dir": "tests33",
+    "run_name": "border_sides_splitnet_physics_limited_mask_mse_darcy_tvP_stats_d0p0",
+    "save_prefix": null,
+    "save_best": true,
+    "resume": true,
+    "save_checkpoint_every": 1,
+    "best_metric": "loss_config_score",
+    "dataset_kwargs": null
+  }
+}

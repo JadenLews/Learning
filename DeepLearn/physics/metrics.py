@@ -208,20 +208,20 @@ def compute_metric(
             **kwargs,
         )
 
-    # if name == "ssim":
-    #     if region != "all":
-    #         raise ValueError("SSIM should usually be used with region='all'.")
-    #     return ssim(pred, target, **kwargs)
+    if name == "ssim":
+        if region != "all":
+            raise ValueError("SSIM should usually be used with region='all'.")
+        return ssim(pred, target, **kwargs)
 
-    # if name == "ssim_loss":
-    #     if region != "all":
-    #         raise ValueError("SSIM loss should usually be used with region='all'.")
-    #     return 1.0 - ssim(pred, target, **kwargs)
+    if name == "ssim_loss":
+        if region != "all":
+            raise ValueError("SSIM loss should usually be used with region='all'.")
+        return 1.0 - ssim(pred, target, **kwargs)
 
-    # if name == "psnr":
-    #     if region != "all":
-    #         raise ValueError("PSNR should usually be used with region='all'.")
-    #     return psnr(pred, target, **kwargs)
+    if name == "psnr":
+        if region != "all":
+            raise ValueError("PSNR should usually be used with region='all'.")
+        return psnr(pred, target, **kwargs)
     
     if name == "tv":
         return total_variation_loss(
@@ -229,22 +229,22 @@ def compute_metric(
             channel=channel,
         )
 
-    # if name == "channel_stats":
-    #     return channel_mean_std_prior(
-    #         pred,
-    #         channel_mean=kwargs["channel_mean"],
-    #         channel_std=kwargs["channel_std"],
-    #         channels=kwargs.get("channels", None),
-    #     )
+    if name == "channel_stats":
+        return channel_mean_std_prior(
+            pred,
+            channel_mean=kwargs["channel_mean"],
+            channel_std=kwargs["channel_std"],
+            channels=kwargs.get("channels", None),
+        )
 
-    # if name == "low_k_area":
-    #     return low_k_area_prior(
-    #         pred,
-    #         target_area=kwargs["target_area"],
-    #         threshold=kwargs.get("threshold", -0.5),
-    #         channel=kwargs.get("channel", 0),
-    #         softness=kwargs.get("softness", 20.0),
-    #     )
+    if name == "low_k_area":
+        return low_k_area_prior(
+            pred,
+            target_area=kwargs["target_area"],
+            threshold=kwargs.get("threshold", -0.5),
+            channel=kwargs.get("channel", 0),
+            softness=kwargs.get("softness", 20.0),
+        )
 
     raise ValueError(f"Unknown metric name: {name}")
 
@@ -328,86 +328,86 @@ def total_variation_loss(pred, channel=None):
 
 
 
-# def channel_mean_std_prior(pred, channel_mean, channel_std, channels=None):
-#     """
-#     Matches prediction-level channel mean/std to dataset-level priors.
+def channel_mean_std_prior(pred, channel_mean, channel_std, channels=None):
+    """
+    Matches prediction-level channel mean/std to dataset-level priors.
 
-#     Does not use the individual target.
-#     channel_mean and channel_std should come from dataset_priors.json.
-#     """
+    Does not use the individual target.
+    channel_mean and channel_std should come from dataset_priors.json.
+    """
 
-#     device = pred.device
-#     dtype = pred.dtype
+    device = pred.device
+    dtype = pred.dtype
 
-#     mean_prior = torch.tensor(channel_mean, device=device, dtype=dtype)
-#     std_prior = torch.tensor(channel_std, device=device, dtype=dtype)
+    mean_prior = torch.tensor(channel_mean, device=device, dtype=dtype)
+    std_prior = torch.tensor(channel_std, device=device, dtype=dtype)
 
-#     if channels is not None:
-#         pred = pred[:, channels]
-#         mean_prior = mean_prior[channels]
-#         std_prior = std_prior[channels]
+    if channels is not None:
+        pred = pred[:, channels]
+        mean_prior = mean_prior[channels]
+        std_prior = std_prior[channels]
 
-#     pred_mean = pred.mean(dim=(0, 2, 3))
-#     pred_std = pred.std(dim=(0, 2, 3))
+    pred_mean = pred.mean(dim=(0, 2, 3))
+    pred_std = pred.std(dim=(0, 2, 3))
 
-#     mean_loss = ((pred_mean - mean_prior) ** 2).mean()
-#     std_loss = ((pred_std - std_prior) ** 2).mean()
+    mean_loss = ((pred_mean - mean_prior) ** 2).mean()
+    std_loss = ((pred_std - std_prior) ** 2).mean()
 
-#     return mean_loss + std_loss
-
-
-# def low_k_area_prior(pred, target_area, threshold=-0.5, channel=0, softness=20.0):
-#     """
-#     Soft area prior for low-K regions.
-
-#     Does not use target.
-#     Encourages the predicted K channel to contain a realistic amount
-#     of low-conductivity/channel pixels.
-
-#     Uses sigmoid instead of hard threshold so it is differentiable.
-#     """
-
-#     k = pred[:, channel:channel + 1]
-
-#     low_k_soft = torch.sigmoid(softness * (threshold - k))
-#     pred_area = low_k_soft.mean()
-
-#     target_area = torch.tensor(
-#         target_area,
-#         device=pred.device,
-#         dtype=pred.dtype,
-#     )
-
-#     return (pred_area - target_area) ** 2
+    return mean_loss + std_loss
 
 
-# def psnr(pred, target, data_range=2.0):
-#     mse = ((pred - target) ** 2).mean()
+def low_k_area_prior(pred, target_area, threshold=-0.5, channel=0, softness=20.0):
+    """
+    Soft area prior for low-K regions.
 
-#     if mse.item() == 0:
-#         return torch.tensor(float("inf"), device=pred.device)
+    Does not use target.
+    Encourages the predicted K channel to contain a realistic amount
+    of low-conductivity/channel pixels.
 
-#     return 20 * torch.log10(torch.tensor(data_range, device=pred.device)) - 10 * torch.log10(mse)
+    Uses sigmoid instead of hard threshold so it is differentiable.
+    """
+
+    k = pred[:, channel:channel + 1]
+
+    low_k_soft = torch.sigmoid(softness * (threshold - k))
+    pred_area = low_k_soft.mean()
+
+    target_area = torch.tensor(
+        target_area,
+        device=pred.device,
+        dtype=pred.dtype,
+    )
+
+    return (pred_area - target_area) ** 2
 
 
-# def ssim(pred, target, data_range=2.0, window_size=11):
-#     C1 = (0.01 * data_range) ** 2
-#     C2 = (0.03 * data_range) ** 2
+def psnr(pred, target, data_range=2.0):
+    mse = ((pred - target) ** 2).mean()
 
-#     padding = window_size // 2
+    if mse.item() == 0:
+        return torch.tensor(float("inf"), device=pred.device)
 
-#     mu_x = F.avg_pool2d(pred, window_size, stride=1, padding=padding)
-#     mu_y = F.avg_pool2d(target, window_size, stride=1, padding=padding)
+    return 20 * torch.log10(torch.tensor(data_range, device=pred.device)) - 10 * torch.log10(mse)
 
-#     mu_x2 = mu_x ** 2
-#     mu_y2 = mu_y ** 2
-#     mu_xy = mu_x * mu_y
 
-#     sigma_x2 = F.avg_pool2d(pred * pred, window_size, stride=1, padding=padding) - mu_x2
-#     sigma_y2 = F.avg_pool2d(target * target, window_size, stride=1, padding=padding) - mu_y2
-#     sigma_xy = F.avg_pool2d(pred * target, window_size, stride=1, padding=padding) - mu_xy
+def ssim(pred, target, data_range=2.0, window_size=11):
+    C1 = (0.01 * data_range) ** 2
+    C2 = (0.03 * data_range) ** 2
 
-#     numerator = (2 * mu_xy + C1) * (2 * sigma_xy + C2)
-#     denominator = (mu_x2 + mu_y2 + C1) * (sigma_x2 + sigma_y2 + C2)
+    padding = window_size // 2
 
-#     return (numerator / (denominator + 1e-8)).mean()
+    mu_x = F.avg_pool2d(pred, window_size, stride=1, padding=padding)
+    mu_y = F.avg_pool2d(target, window_size, stride=1, padding=padding)
+
+    mu_x2 = mu_x ** 2
+    mu_y2 = mu_y ** 2
+    mu_xy = mu_x * mu_y
+
+    sigma_x2 = F.avg_pool2d(pred * pred, window_size, stride=1, padding=padding) - mu_x2
+    sigma_y2 = F.avg_pool2d(target * target, window_size, stride=1, padding=padding) - mu_y2
+    sigma_xy = F.avg_pool2d(pred * target, window_size, stride=1, padding=padding) - mu_xy
+
+    numerator = (2 * mu_xy + C1) * (2 * sigma_xy + C2)
+    denominator = (mu_x2 + mu_y2 + C1) * (sigma_x2 + sigma_y2 + C2)
+
+    return (numerator / (denominator + 1e-8)).mean()

@@ -15,6 +15,7 @@ import datasets
 import unet
 import unetFixed
 import prof_unet
+from SplitNetInterp import SplitNetInterp
 
 from SplitNet import SplitNet
 
@@ -172,6 +173,11 @@ def make_model(model_type: ModelType = "splitnet_attn", channels: str = "KP") ->
             in_channels=num_channels,
             num_classes=num_channels
         ).to(DEVICE)
+    
+    if model_type == "splitnet_interp":
+        if channels != "KP":
+            raise ValueError("SplitNetInterp only supports channels='KP'.")
+        return SplitNetInterp().to(DEVICE)
 
     raise ValueError(f"Unknown model_type: {model_type}")
 
@@ -181,28 +187,22 @@ def make_model(model_type: ModelType = "splitnet_attn", channels: str = "KP") ->
 # -----------------------------------------------------------------------------
 
 def get_dataset_class(dataset_mode: DatasetMode, training_mode: TrainingMode):
-    """
-    Selects the correct dataset class.
 
-    physics_limited:
-        Uses Limited datasets, which return:
-            feat, label, mask
-
-    baseline_full:
-        Uses Full datasets, which return:
-            feat, label
-    """
     if training_mode == "physics_limited":
         if dataset_mode == "border":
             return datasets.BorderDenseDatasetLimited
         if dataset_mode == "fixed":
             return datasets.FixedDenseDatasetLimited
+        if dataset_mode == "border_sides":
+            return datasets.BorderDenseDatasetLimitedSides
 
     if training_mode == "baseline_full":
         if dataset_mode == "border":
             return datasets.BorderDenseDatasetFull
         if dataset_mode == "fixed":
             return datasets.FixedDenseDatasetFull
+        if dataset_mode == "border_sides":
+            return datasets.BorderDenseDatasetFullSides
 
     raise ValueError(
         f"Invalid dataset/training combination: "
